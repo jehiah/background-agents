@@ -667,6 +667,63 @@ variable "e2b_template_memory_mb" {
   default     = 4096
 }
 
+# -----------------------------------------------------------------------------
+# Generic sandbox (only required when sandbox_provider = "generic")
+# -----------------------------------------------------------------------------
+
+variable "generic_sandbox_url" {
+  description = "Base URL for the generic sandbox provider protocol (e.g. https://sandbox.example.com/api)"
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.sandbox_provider != "generic" || length(var.generic_sandbox_url) > 0
+    error_message = "generic_sandbox_url must be set when sandbox_provider = 'generic'."
+  }
+}
+
+variable "generic_sandbox_token" {
+  description = "Static bearer token for the generic sandbox provider"
+  type        = string
+  sensitive   = true
+  default     = ""
+
+  validation {
+    condition     = var.sandbox_provider != "generic" || length(var.generic_sandbox_token) > 0
+    error_message = "generic_sandbox_token must be set when sandbox_provider = 'generic'."
+  }
+}
+
+variable "generic_sandbox_supports_sandbox_timeout" {
+  description = "Whether the generic sandbox backend enforces the sandbox lifetime it's given"
+  type        = bool
+  default     = true
+}
+
+variable "generic_sandbox_supports_snapshots" {
+  description = "Whether the generic sandbox backend implements filesystem snapshots"
+  type        = bool
+  default     = false
+}
+
+variable "generic_sandbox_supports_restore" {
+  description = "Whether the generic sandbox backend implements restore-from-snapshot"
+  type        = bool
+  default     = false
+}
+
+variable "generic_sandbox_supports_resume" {
+  description = "Whether the generic sandbox backend implements persistent resume"
+  type        = bool
+  default     = true
+}
+
+variable "generic_sandbox_supports_stop" {
+  description = "Whether the generic sandbox backend implements explicit stop"
+  type        = bool
+  default     = true
+}
+
 variable "nextauth_secret" {
   description = "Browser authentication secret used by the control plane (legacy Terraform input name; generate with: openssl rand -base64 32)"
   type        = string
@@ -683,13 +740,13 @@ variable "nextauth_secret" {
 # =============================================================================
 
 variable "sandbox_provider" {
-  description = "Sandbox backend for session execution: 'modal', 'modal-vm', 'daytona', 'vercel', 'opencomputer', or 'e2b'"
+  description = "Sandbox backend for session execution: 'modal', 'modal-vm', 'daytona', 'vercel', 'opencomputer', 'e2b', or 'generic'"
   type        = string
   default     = "modal"
 
   validation {
-    condition     = contains(["modal", "modal-vm", "daytona", "vercel", "opencomputer", "e2b"], var.sandbox_provider)
-    error_message = "sandbox_provider must be 'modal', 'modal-vm', 'daytona', 'vercel', 'opencomputer', or 'e2b'."
+    condition     = contains(["modal", "modal-vm", "daytona", "vercel", "opencomputer", "e2b", "generic"], var.sandbox_provider)
+    error_message = "sandbox_provider must be 'modal', 'modal-vm', 'daytona', 'vercel', 'opencomputer', 'e2b', or 'generic'."
   }
 }
 
@@ -718,6 +775,17 @@ variable "sandbox_boot_timeout_ms" {
   validation {
     condition     = var.sandbox_boot_timeout_ms > 240000
     error_message = "sandbox_boot_timeout_ms must exceed the 240000 ms connect watchdog."
+  }
+}
+
+variable "sandbox_connecting_timeout_ms" {
+  description = "Initial-connect watchdog in milliseconds: max time a sandbox may stay in 'connecting' before being failed. Increase for slower-provisioning sandbox providers. 0 uses the built-in default."
+  type        = number
+  default     = 0
+
+  validation {
+    condition     = var.sandbox_connecting_timeout_ms == 0 || var.sandbox_connecting_timeout_ms < var.sandbox_boot_timeout_ms
+    error_message = "sandbox_connecting_timeout_ms must be below sandbox_boot_timeout_ms: the connect watchdog fires before the boot budget."
   }
 }
 

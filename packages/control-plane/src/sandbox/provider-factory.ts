@@ -2,6 +2,7 @@ import { createModalClient } from "./client";
 import { createDaytonaRestClient, type DaytonaRestClient } from "./daytona-rest-client";
 import { createE2BRestClient } from "./e2b-rest-client";
 import { createOpenComputerRestClient } from "./opencomputer-rest-client";
+import { createGenericSandboxClient } from "./generic-client";
 import { resolveSandboxBackendName, type SandboxBackendName } from "./provider-name";
 import type { SandboxProvider } from "./provider";
 import { createDaytonaProvider, type DaytonaSandboxProvider } from "./providers/daytona-provider";
@@ -16,6 +17,7 @@ import {
   createOpenComputerProvider,
   type OpenComputerSandboxProvider,
 } from "./providers/opencomputer-provider";
+import { createGenericProvider, type GenericSandboxProvider } from "./providers/generic-provider";
 import { createVercelSandboxClient } from "./providers/vercel/client";
 import { createVercelProvider, type VercelSandboxProvider } from "./providers/vercel/provider";
 import { resolveScmProviderFromEnv } from "../source-control";
@@ -92,6 +94,53 @@ function createOpenComputerProviderFromEnv(
     llmEnvVars: {
       ANTHROPIC_API_KEY: env.ANTHROPIC_API_KEY,
     },
+  });
+}
+
+/**
+ * Capability defaults model a persistent, VM-style backend: it enforces the
+ * sandbox lifetime it is given and can resume/stop in place, but implements no
+ * filesystem snapshots. Each flag is overridable so a deployment declares what
+ * its own backend actually implements.
+ */
+function createGenericProviderFromEnv(env: Env): GenericSandboxProvider {
+  if (!env.GENERIC_SANDBOX_URL || !env.GENERIC_SANDBOX_TOKEN) {
+    throw new Error(
+      "GENERIC_SANDBOX_URL and GENERIC_SANDBOX_TOKEN are required when SANDBOX_PROVIDER=generic"
+    );
+  }
+
+  const client = createGenericSandboxClient({
+    baseUrl: env.GENERIC_SANDBOX_URL,
+    bearerToken: env.GENERIC_SANDBOX_TOKEN,
+  });
+
+  return createGenericProvider(client, {
+    supportsSandboxTimeout: parseBooleanEnv(
+      "GENERIC_SANDBOX_SUPPORTS_SANDBOX_TIMEOUT",
+      env.GENERIC_SANDBOX_SUPPORTS_SANDBOX_TIMEOUT,
+      true
+    ),
+    supportsSnapshots: parseBooleanEnv(
+      "GENERIC_SANDBOX_SUPPORTS_SNAPSHOTS",
+      env.GENERIC_SANDBOX_SUPPORTS_SNAPSHOTS,
+      false
+    ),
+    supportsRestore: parseBooleanEnv(
+      "GENERIC_SANDBOX_SUPPORTS_RESTORE",
+      env.GENERIC_SANDBOX_SUPPORTS_RESTORE,
+      false
+    ),
+    supportsPersistentResume: parseBooleanEnv(
+      "GENERIC_SANDBOX_SUPPORTS_RESUME",
+      env.GENERIC_SANDBOX_SUPPORTS_RESUME,
+      true
+    ),
+    supportsExplicitStop: parseBooleanEnv(
+      "GENERIC_SANDBOX_SUPPORTS_STOP",
+      env.GENERIC_SANDBOX_SUPPORTS_STOP,
+      true
+    ),
   });
 }
 
@@ -180,6 +229,7 @@ export function createSandboxProviderFromEnv(
   backend: "opencomputer",
   options?: { requireOpenComputerTemplate?: boolean }
 ): OpenComputerSandboxProvider;
+export function createSandboxProviderFromEnv(env: Env, backend: "generic"): GenericSandboxProvider;
 export function createSandboxProviderFromEnv(
   env: Env,
   backend?: SandboxBackendName,
@@ -201,6 +251,8 @@ export function createSandboxProviderFromEnv(
       });
     case "e2b":
       return createE2BProviderFromEnv(env);
+    case "generic":
+      return createGenericProviderFromEnv(env);
     case "modal":
     case "modal-vm":
       return createModalProviderFromEnv(env, backend);

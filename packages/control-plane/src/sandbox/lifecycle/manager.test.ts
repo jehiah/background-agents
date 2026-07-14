@@ -53,6 +53,8 @@ import {
 } from "./test-helpers";
 import { SandboxShutdownCoordinator } from "../../session/sandbox-shutdown";
 import type { ShutdownRecord } from "../../session/sandbox-shutdown-repository";
+import { createGenericProvider } from "../providers/generic-provider";
+import type { GenericSandboxClient } from "../generic-client";
 
 // Gate for the #1589 admission-race suite: hashToken passes through to the
 // real implementation, but a test can hold the next call open to keep the
@@ -79,6 +81,37 @@ function parseStructuredLogs(spy: ReturnType<typeof vi.spyOn>): Array<Record<str
   return spy.mock.calls.map(
     (call: unknown[]) => JSON.parse(String(call[0])) as Record<string, unknown>
   );
+}
+
+/**
+ * A mock GenericSandboxClient wrapped by a real GenericSandboxProvider, so the
+ * full provider-object-id plumbing is exercised: createSandbox returns an id,
+ * the manager persists it as modal_object_id, and stopSandbox must read it back.
+ */
+function createMockGenericClient(
+  overrides: Partial<{
+    createSandbox: GenericSandboxClient["createSandbox"];
+    stopSandbox: GenericSandboxClient["stopSandbox"];
+    resumeSandbox: GenericSandboxClient["resumeSandbox"];
+  }> = {}
+): GenericSandboxClient {
+  return {
+    createSandbox:
+      overrides.createSandbox ||
+      vi.fn(async () => ({
+        sandboxId: "generated-id-1",
+        providerObjectId: "vm-instance-abc123",
+        status: "connecting",
+        createdAt: Date.now(),
+      })),
+    stopSandbox: overrides.stopSandbox || vi.fn(async () => ({ success: true })),
+    resumeSandbox:
+      overrides.resumeSandbox ||
+      vi.fn(async () => ({ success: true, providerObjectId: "vm-instance-abc123" })),
+    restoreSandbox: vi.fn(async () => ({ success: true, sandboxId: "generated-id-1" })),
+    snapshotSandbox: vi.fn(async () => ({ success: true, imageId: "snap-1" })),
+    health: vi.fn(async () => ({ status: "ok" })),
+  } as unknown as GenericSandboxClient;
 }
 
 type ProviderStartupKind = "spawn" | "restore" | "resume";
@@ -3541,6 +3574,130 @@ describe("SandboxLifecycleManager", () => {
         "setLastSpawnError:failed to fetch managed skills: 401 Unauthorized"
       );
       expect(wsManager.detachSandboxWebSocket).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("generic provider (spawn → cancel → stop)", () => {
+    function freshSandbox() {
+      // A fresh sandbox so spawnSandbox() does a create (not resume/restore).
+      return createMockSandbox({
+        status: "pending",
+        created_at: Date.now() - 60000,
+        modal_object_id: null,
+        snapshot_image_id: null,
+      });
+    }
+
+    function createManager(
+      client: GenericSandboxClient,
+      sandbox: ReturnType<typeof createMockSandbox>,
+      wsManager = createMockWebSocketManager(true)
+    ) {
+      const storage = createMockStorage(createMockSession(), sandbox);
+      // Default generic capabilities: persistent resume + explicit stop (no snapshots).
+      const manager = new SandboxLifecycleManager(
+        createGenericProvider(client),
+        storage,
+        storage,
+        createMockBroadcaster(),
+        wsManager,
+        createMockAlarmScheduler(),
+        createMockIdGenerator(),
+        createUnmanagedShutdown(),
+        createTestConfig()
+      );
+      return { manager, storage };
+    }
+
+    it("persists the created provider object id and stops that instance on cancel", async () => {
+      const sandbox = freshSandbox();
+      const client = createMockGenericClient();
+      const { manager, storage } = createManager(client, sandbox);
+
+      // The backend returns a provider object id, which must be persisted as
+      // modal_object_id; otherwise stop can never find it.
+      await manager.spawnSandbox();
+      expect(client.createSandbox).toHaveBeenCalledOnce();
+      expect(storage.calls).toContain("commitProviderStartup");
+      expect(sandbox.modal_object_id).toBe("vm-instance-abc123");
+
+      await manager.cancelSandbox();
+      expect(client.stopSandbox).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({
+          providerObjectId: "vm-instance-abc123",
+          sessionId: "test-session",
+          reason: "session_cancelled",
+        }),
+        undefined
+      );
+      expect(storage.calls).toContain("updateSandboxStatus:stopped");
+    });
+
+    it("cannot stop an instance whose create response omitted the provider object id", async () => {
+      const sandbox = freshSandbox();
+      const client = createMockGenericClient({
+        createSandbox: vi.fn(async () => ({
+          sandboxId: "generated-id-1",
+          status: "connecting",
+          createdAt: Date.now(),
+        })),
+      });
+      const { manager } = createManager(client, sandbox);
+
+      await manager.spawnSandbox();
+      expect(sandbox.modal_object_id).toBeNull();
+
+      await manager.cancelSandbox();
+      // The protocol requires provider_object_id for exactly this reason.
+      expect(client.stopSandbox).not.toHaveBeenCalled();
+    });
+
+    it("warms once, treats a later spawn as a noop, and stops the warmed instance", async () => {
+      const sandbox = freshSandbox();
+      const client = createMockGenericClient();
+      // The bridge's WebSocket only exists once the warmed sandbox connects.
+      const wsManager = createMockWebSocketManager(false);
+      const { manager, storage } = createManager(client, sandbox, wsManager);
+
+      await manager.warmSandbox();
+      expect(client.createSandbox).toHaveBeenCalledOnce();
+      expect(sandbox.modal_object_id).toBe("vm-instance-abc123");
+
+      manager.onSandboxConnected();
+      vi.mocked(wsManager.getSandboxWebSocket).mockReturnValue({} as WebSocket);
+      storage.updateSandboxStatus("ready");
+
+      await manager.spawnSandbox();
+      expect(client.createSandbox).toHaveBeenCalledOnce();
+      expect(client.resumeSandbox).not.toHaveBeenCalled();
+
+      await manager.cancelSandbox();
+      expect(client.stopSandbox).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ providerObjectId: "vm-instance-abc123" }),
+        undefined
+      );
+    });
+
+    it("sends a slash-containing provider object id verbatim", async () => {
+      const sandbox = freshSandbox();
+      const client = createMockGenericClient({
+        createSandbox: vi.fn(async () => ({
+          sandboxId: "generated-id-1",
+          providerObjectId: "sandboxes/region-1/vm-abc123",
+          status: "connecting",
+          createdAt: Date.now(),
+        })),
+      });
+      const { manager } = createManager(client, sandbox);
+
+      await manager.spawnSandbox();
+      expect(sandbox.modal_object_id).toBe("sandboxes/region-1/vm-abc123");
+
+      await manager.cancelSandbox();
+      expect(client.stopSandbox).toHaveBeenCalledWith(
+        expect.objectContaining({ providerObjectId: "sandboxes/region-1/vm-abc123" }),
+        undefined
+      );
     });
   });
 

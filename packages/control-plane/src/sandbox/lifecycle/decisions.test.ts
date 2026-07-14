@@ -14,6 +14,7 @@ import {
   evaluateConnectingTimeout,
   evaluateBootBudget,
   resolveBootBudgetTimeoutMs,
+  resolveConnectingTimeoutMs,
   evaluateWarmDecision,
   evaluateExecutionTimeout,
   isSandboxReconnectBlockedStatus,
@@ -1088,6 +1089,38 @@ describe("resolveBootBudgetTimeoutMs", () => {
     (raw) => {
       expect(resolveBootBudgetTimeoutMs(raw, bounds)).toEqual({
         timeoutMs: 1_800_000,
+        rejectedValue: raw,
+      });
+    }
+  );
+});
+
+describe("resolveConnectingTimeoutMs", () => {
+  const bounds = { defaultTimeoutMs: 240_000, maxTimeoutMs: 1_800_000 };
+
+  it("uses the default, without complaint, when the knob is unset", () => {
+    expect(resolveConnectingTimeoutMs(undefined, bounds)).toEqual({
+      timeoutMs: 240_000,
+      rejectedValue: null,
+    });
+    expect(resolveConnectingTimeoutMs("", bounds)).toEqual({
+      timeoutMs: 240_000,
+      rejectedValue: null,
+    });
+  });
+
+  it("accepts a positive integer below the boot budget", () => {
+    expect(resolveConnectingTimeoutMs("600000", bounds)).toEqual({
+      timeoutMs: 600_000,
+      rejectedValue: null,
+    });
+  });
+
+  it.each(["abc", "1000junk", "0", "-5", "1.5", "1800000", "1e6", "9007199254740993"])(
+    "falls back to the default and names the rejected value for %s",
+    (raw) => {
+      expect(resolveConnectingTimeoutMs(raw, bounds)).toEqual({
+        timeoutMs: 240_000,
         rejectedValue: raw,
       });
     }

@@ -291,6 +291,7 @@ jobs:
           TF_VAR_sandbox_provider: "${{ vars.SANDBOX_PROVIDER || secrets.SANDBOX_PROVIDER || 'modal' }}"
           TF_VAR_sandbox_inactivity_timeout_ms: "${{ vars.SANDBOX_INACTIVITY_TIMEOUT_MS || secrets.SANDBOX_INACTIVITY_TIMEOUT_MS || '600000' }}"
           TF_VAR_sandbox_boot_timeout_ms: "${{ vars.SANDBOX_BOOT_TIMEOUT_MS || secrets.SANDBOX_BOOT_TIMEOUT_MS || '1800000' }}"
+          TF_VAR_sandbox_connecting_timeout_ms: "${{ vars.SANDBOX_CONNECTING_TIMEOUT_MS || secrets.SANDBOX_CONNECTING_TIMEOUT_MS || '0' }}"
           TF_VAR_daytona_api_url: ${{ vars.DAYTONA_API_URL || secrets.DAYTONA_API_URL }}
           TF_VAR_daytona_api_key: ${{ secrets.DAYTONA_API_KEY }}
           TF_VAR_daytona_base_snapshot: ${{ vars.DAYTONA_BASE_SNAPSHOT || secrets.DAYTONA_BASE_SNAPSHOT }}
@@ -319,6 +320,16 @@ jobs:
           TF_VAR_e2b_auto_pause: "${{ vars.E2B_AUTO_PAUSE || secrets.E2B_AUTO_PAUSE || 'true' }}"
           TF_VAR_e2b_template_cpu: "${{ vars.E2B_TEMPLATE_CPU || secrets.E2B_TEMPLATE_CPU || '2' }}"
           TF_VAR_e2b_template_memory_mb: "${{ vars.E2B_TEMPLATE_MEMORY_MB || secrets.E2B_TEMPLATE_MEMORY_MB || '4096' }}"
+          # Sandbox provider: generic. The capability flags tell the control plane
+          # which commands the backend implements; the defaults describe a
+          # persistent, VM-style backend with no snapshots.
+          TF_VAR_generic_sandbox_url: ${{ vars.GENERIC_SANDBOX_URL || secrets.GENERIC_SANDBOX_URL }}
+          TF_VAR_generic_sandbox_token: ${{ secrets.GENERIC_SANDBOX_TOKEN }}
+          TF_VAR_generic_sandbox_supports_sandbox_timeout: "${{ vars.GENERIC_SANDBOX_SUPPORTS_SANDBOX_TIMEOUT || secrets.GENERIC_SANDBOX_SUPPORTS_SANDBOX_TIMEOUT || 'true' }}"
+          TF_VAR_generic_sandbox_supports_snapshots: "${{ vars.GENERIC_SANDBOX_SUPPORTS_SNAPSHOTS || secrets.GENERIC_SANDBOX_SUPPORTS_SNAPSHOTS || 'false' }}"
+          TF_VAR_generic_sandbox_supports_restore: "${{ vars.GENERIC_SANDBOX_SUPPORTS_RESTORE || secrets.GENERIC_SANDBOX_SUPPORTS_RESTORE || 'false' }}"
+          TF_VAR_generic_sandbox_supports_resume: "${{ vars.GENERIC_SANDBOX_SUPPORTS_RESUME || secrets.GENERIC_SANDBOX_SUPPORTS_RESUME || 'true' }}"
+          TF_VAR_generic_sandbox_supports_stop: "${{ vars.GENERIC_SANDBOX_SUPPORTS_STOP || secrets.GENERIC_SANDBOX_SUPPORTS_STOP || 'true' }}"
 
       - name: Post Plan Results
         uses: actions/github-script@v8
@@ -482,6 +493,7 @@ jobs:
           TF_VAR_sandbox_provider: "${{ vars.SANDBOX_PROVIDER || secrets.SANDBOX_PROVIDER || 'modal' }}"
           TF_VAR_sandbox_inactivity_timeout_ms: "${{ vars.SANDBOX_INACTIVITY_TIMEOUT_MS || secrets.SANDBOX_INACTIVITY_TIMEOUT_MS || '600000' }}"
           TF_VAR_sandbox_boot_timeout_ms: "${{ vars.SANDBOX_BOOT_TIMEOUT_MS || secrets.SANDBOX_BOOT_TIMEOUT_MS || '1800000' }}"
+          TF_VAR_sandbox_connecting_timeout_ms: "${{ vars.SANDBOX_CONNECTING_TIMEOUT_MS || secrets.SANDBOX_CONNECTING_TIMEOUT_MS || '0' }}"
           TF_VAR_daytona_api_url: ${{ vars.DAYTONA_API_URL || secrets.DAYTONA_API_URL }}
           TF_VAR_daytona_api_key: ${{ secrets.DAYTONA_API_KEY }}
           TF_VAR_daytona_base_snapshot: ${{ vars.DAYTONA_BASE_SNAPSHOT || secrets.DAYTONA_BASE_SNAPSHOT }}
@@ -510,6 +522,16 @@ jobs:
           TF_VAR_e2b_auto_pause: "${{ vars.E2B_AUTO_PAUSE || secrets.E2B_AUTO_PAUSE || 'true' }}"
           TF_VAR_e2b_template_cpu: "${{ vars.E2B_TEMPLATE_CPU || secrets.E2B_TEMPLATE_CPU || '2' }}"
           TF_VAR_e2b_template_memory_mb: "${{ vars.E2B_TEMPLATE_MEMORY_MB || secrets.E2B_TEMPLATE_MEMORY_MB || '4096' }}"
+          # Sandbox provider: generic. The capability flags tell the control plane
+          # which commands the backend implements; the defaults describe a
+          # persistent, VM-style backend with no snapshots.
+          TF_VAR_generic_sandbox_url: ${{ vars.GENERIC_SANDBOX_URL || secrets.GENERIC_SANDBOX_URL }}
+          TF_VAR_generic_sandbox_token: ${{ secrets.GENERIC_SANDBOX_TOKEN }}
+          TF_VAR_generic_sandbox_supports_sandbox_timeout: "${{ vars.GENERIC_SANDBOX_SUPPORTS_SANDBOX_TIMEOUT || secrets.GENERIC_SANDBOX_SUPPORTS_SANDBOX_TIMEOUT || 'true' }}"
+          TF_VAR_generic_sandbox_supports_snapshots: "${{ vars.GENERIC_SANDBOX_SUPPORTS_SNAPSHOTS || secrets.GENERIC_SANDBOX_SUPPORTS_SNAPSHOTS || 'false' }}"
+          TF_VAR_generic_sandbox_supports_restore: "${{ vars.GENERIC_SANDBOX_SUPPORTS_RESTORE || secrets.GENERIC_SANDBOX_SUPPORTS_RESTORE || 'false' }}"
+          TF_VAR_generic_sandbox_supports_resume: "${{ vars.GENERIC_SANDBOX_SUPPORTS_RESUME || secrets.GENERIC_SANDBOX_SUPPORTS_RESUME || 'true' }}"
+          TF_VAR_generic_sandbox_supports_stop: "${{ vars.GENERIC_SANDBOX_SUPPORTS_STOP || secrets.GENERIC_SANDBOX_SUPPORTS_STOP || 'true' }}"
           MODAL_TOKEN_ID: ${{ secrets.MODAL_TOKEN_ID }}
           MODAL_TOKEN_SECRET: ${{ secrets.MODAL_TOKEN_SECRET }}
 

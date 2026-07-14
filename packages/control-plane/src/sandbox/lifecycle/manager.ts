@@ -1587,7 +1587,11 @@ export class SandboxLifecycleManager
     const session = this.sessionContext.getSession();
 
     if (!sandbox?.modal_object_id || !session) {
-      this.log.debug("Cannot snapshot: no modal_object_id or session");
+      this.log.warn("Skipping snapshot: missing provider object id or session", {
+        reason,
+        has_provider_object_id: !!sandbox?.modal_object_id,
+        has_session: !!session,
+      });
       return;
     }
 
@@ -1702,6 +1706,7 @@ export class SandboxLifecycleManager
     generationCreatedAtMs?: number
   ): Promise<void> {
     if (!this.provider.stopSandbox) {
+      this.log.warn("Skipping provider stop: provider does not support explicit stop", { reason });
       return;
     }
 
@@ -1709,6 +1714,14 @@ export class SandboxLifecycleManager
     const session = this.sessionContext.getSession();
     const objectId = providerObjectId ?? sandbox?.modal_object_id;
     if (!objectId || !session) {
+      this.log.warn("Skipping provider stop: missing provider object id or session", {
+        reason,
+        session_id: session?.id,
+        sandbox_id: sandbox?.id,
+        has_provider_object_id: !!objectId,
+        has_session: !!session,
+        has_sandbox: !!sandbox,
+      });
       return;
     }
 
