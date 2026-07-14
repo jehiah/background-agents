@@ -81,6 +81,7 @@ export interface SessionLifecycleHandlerDeps {
   getSandboxSocket: () => WebSocket | null;
   sendToSandbox: (ws: WebSocket, message: string | object) => boolean;
   updateSandboxStatus: (status: SandboxStatus) => void;
+  stopSandbox: (reason: string) => Promise<void>;
 }
 
 function sessionTitleUpdateStatus(
@@ -347,6 +348,10 @@ export function createSessionLifecycleHandler(
 
       await deps.transitionSessionStatus("archived");
 
+      // Tear down the sandbox: archiving ends the session, so stop the provider
+      // instance instead of leaving it running until an inactivity timeout.
+      await deps.stopSandbox("session_archived");
+
       return Response.json({ status: "archived" });
     },
 
@@ -399,7 +404,11 @@ export function createSessionLifecycleHandler(
         if (sandboxWs) {
           deps.sendToSandbox(sandboxWs, { type: "shutdown" });
         }
-        deps.updateSandboxStatus("stopped");
+        // We signalled the bridge to shut down but cannot confirm the provider
+        // instance actually stopped, so mark it "unknown" rather than "stopped".
+        // The inactivity watchdog reconciles it (issues a provider stop); if the
+        // bridge reconnects, the WS-connect path transitions it back to "ready".
+        deps.updateSandboxStatus("unknown");
       }
 
       return Response.json({ status: "cancelled" });

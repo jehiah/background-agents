@@ -100,6 +100,20 @@ opencomputer_api_url = "https://app.opencomputer.dev/api"
 opencomputer_api_key = ""
 opencomputer_template = ""
 
+# Generic sandbox provider (any backend implementing SANDBOX_PROTOCOL.md over HTTP)
+# Only required when sandbox_provider = "generic"
+generic_sandbox_url   = "" # e.g., "https://sandbox.example.com/api"
+generic_sandbox_token = "" # Static bearer token
+# Capability flags — default to a persistent backend (resume + stop, no snapshots).
+# generic_sandbox_supports_snapshots = false
+# generic_sandbox_supports_restore   = false
+# generic_sandbox_supports_resume    = true
+# generic_sandbox_supports_stop      = true
+
+# Initial-connect watchdog: max ms a sandbox may stay "connecting" before being failed.
+# Raise this if your sandbox provider provisions slowly. 0 uses the built-in default (2 min).
+# sandbox_connecting_timeout_ms = 120000 # 2 minutes
+
 # =============================================================================
 # GitHub App Credentials
 # =============================================================================
@@ -151,6 +165,9 @@ github_webhook_secret = ""
 #   App named "Acme Code Review" -> slug "acme-code-review" -> "acme-code-review[bot]"
 # The webhook handler uses this to detect @mentions of the bot in PRs/issues.
 github_bot_username = ""
+
+# Default model for sessions created by the GitHub bot.
+# github_default_model = "anthropic/claude-haiku-4-5"
 
 # =============================================================================
 # Google OAuth Credentials (Optional)
@@ -235,6 +252,7 @@ nextauth_secret = ""
 # - "daytona": direct Daytona REST API integration with stop/start resume
 # - "vercel": Vercel Sandbox API with filesystem snapshot restore
 # - "opencomputer": OpenComputer declarative-template sandboxes with hibernate/resume
+# - "generic": any backend implementing SANDBOX_PROTOCOL.md over HTTP (base URL + bearer token)
 sandbox_provider = "modal"
 
 # Platform for the web app deployment

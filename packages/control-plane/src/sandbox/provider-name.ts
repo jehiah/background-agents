@@ -2,7 +2,7 @@
  * Sandbox backend selection utilities.
  */
 
-export type SandboxBackendName = "modal" | "daytona" | "vercel" | "opencomputer";
+export type SandboxBackendName = "modal" | "daytona" | "vercel" | "opencomputer" | "generic";
 
 /**
  * Resolve the configured sandbox backend.
@@ -26,6 +26,10 @@ export function resolveSandboxBackendName(value: string | undefined): SandboxBac
 
   if (normalized === "opencomputer") {
     return "opencomputer";
+  }
+
+  if (normalized === "generic") {
+    return "generic";
   }
 
   throw new Error(`Unsupported SANDBOX_PROVIDER: ${value}`);

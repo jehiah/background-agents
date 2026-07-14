@@ -107,6 +107,7 @@ function createHandler() {
   const getSandboxSocket = vi.fn<() => WebSocket | null>();
   const sendToSandbox = vi.fn();
   const updateSandboxStatus = vi.fn();
+  const stopSandbox = vi.fn<(reason: string) => Promise<void>>().mockResolvedValue(undefined);
 
   const handler = createSessionLifecycleHandler({
     repository,
@@ -128,6 +129,7 @@ function createHandler() {
     getSandboxSocket,
     sendToSandbox,
     updateSandboxStatus,
+    stopSandbox,
   });
 
   return {
@@ -150,6 +152,7 @@ function createHandler() {
     getSandboxSocket,
     sendToSandbox,
     updateSandboxStatus,
+    stopSandbox,
   };
 }
 
@@ -653,8 +656,8 @@ describe("createSessionLifecycleHandler", () => {
     expect(await response.json()).toEqual({ error: "Not authorized to archive this session" });
   });
 
-  it("archives successfully for participant", async () => {
-    const { handler, getSession, getParticipantByUserId, transitionSessionStatus } =
+  it("archives successfully for participant and stops the sandbox", async () => {
+    const { handler, getSession, getParticipantByUserId, transitionSessionStatus, stopSandbox } =
       createHandler();
     getSession.mockReturnValue(createSession());
     getParticipantByUserId.mockReturnValue(createParticipant());
@@ -671,6 +674,7 @@ describe("createSessionLifecycleHandler", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ status: "archived" });
     expect(transitionSessionStatus).toHaveBeenCalledWith("archived");
+    expect(stopSandbox).toHaveBeenCalledWith("session_archived");
   });
 
   it("unarchives successfully for participant", async () => {
@@ -728,6 +732,6 @@ describe("createSessionLifecycleHandler", () => {
     expect(stopExecution).toHaveBeenCalledWith({ suppressStatusReconcile: true });
     expect(transitionSessionStatus).toHaveBeenCalledWith("cancelled");
     expect(sendToSandbox).toHaveBeenCalledWith(ws, { type: "shutdown" });
-    expect(updateSandboxStatus).toHaveBeenCalledWith("stopped");
+    expect(updateSandboxStatus).toHaveBeenCalledWith("unknown");
   });
 });

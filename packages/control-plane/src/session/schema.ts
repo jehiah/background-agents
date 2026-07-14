@@ -135,7 +135,7 @@ CREATE TABLE IF NOT EXISTS sandbox (
   snapshot_image_id TEXT,                           -- Modal Image ID for filesystem snapshot restoration
   auth_token TEXT,                                  -- Token for sandbox to authenticate back to control plane
   auth_token_hash TEXT,                             -- SHA-256 hash of sandbox auth token (preferred)
-  status TEXT DEFAULT 'pending',                    -- 'pending', 'spawning', 'connecting', 'warming', 'syncing', 'ready', 'running', 'stale', 'snapshotting', 'stopped', 'failed'
+  status TEXT DEFAULT 'pending',                    -- 'pending', 'spawning', 'connecting', 'warming', 'syncing', 'ready', 'running', 'stale', 'snapshotting', 'stopped', 'failed', 'unknown'
   git_sync_status TEXT DEFAULT 'pending',           -- 'pending', 'in_progress', 'completed', 'failed'
   last_heartbeat INTEGER,
   last_activity INTEGER,                            -- Last activity timestamp for inactivity-based snapshot

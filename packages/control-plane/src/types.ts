@@ -87,7 +87,7 @@ export interface Env {
   WORKER_URL?: string; // Base URL for the worker (for callbacks)
   WEB_APP_URL?: string; // Base URL for the web app (for PR links)
   CF_ACCOUNT_ID?: string; // Cloudflare account ID
-  SANDBOX_PROVIDER?: string; // "modal" (default), "daytona", "vercel", or "opencomputer"
+  SANDBOX_PROVIDER?: string; // "modal" (default), "daytona", "vercel", "opencomputer", or "generic"
   MODAL_WORKSPACE?: string; // Modal workspace name
   MODAL_ENVIRONMENT?: string; // Modal environment name for dashboard URLs
   MODAL_ENVIRONMENT_WEB_SUFFIX?: string; // Modal environment web suffix for endpoint URLs
@@ -105,9 +105,16 @@ export interface Env {
   VERCEL_RUNTIME?: string; // Vercel sandbox runtime (default: node24)
   VERCEL_SANDBOX_API_BASE_URL?: string; // Override for tests or non-default Vercel API base URL
   VERCEL_SNAPSHOT_EXPIRATION_MS?: string; // Snapshot expiration in ms; 0 means no expiration
+  GENERIC_SANDBOX_URL?: string; // Base URL for the generic sandbox provider protocol
+  GENERIC_SANDBOX_TOKEN?: string; // Static bearer token for the generic sandbox provider
+  GENERIC_SANDBOX_SUPPORTS_SNAPSHOTS?: string; // "true" to enable filesystem snapshots (default: false)
+  GENERIC_SANDBOX_SUPPORTS_RESTORE?: string; // "true" to enable restore-from-snapshot (default: false)
+  GENERIC_SANDBOX_SUPPORTS_RESUME?: string; // "true" to enable persistent resume (default: true)
+  GENERIC_SANDBOX_SUPPORTS_STOP?: string; // "true" to enable explicit stop (default: true)
 
   // Sandbox lifecycle configuration
   SANDBOX_INACTIVITY_TIMEOUT_MS?: string; // Inactivity timeout in ms (default: 600000 = 10 min)
+  SANDBOX_CONNECTING_TIMEOUT_MS?: string; // Initial-connect watchdog in ms (default: 120000 = 2 min)
   EXECUTION_TIMEOUT_MS?: string; // Max processing time before auto-fail (default: 5400000 = 90 min)
   SECRETS_CAP_ENFORCEMENT?: string; // "enforce" (default) fails spawn/build on oversized secret payloads; set "warn" to only log
 

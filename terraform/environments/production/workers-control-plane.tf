@@ -108,6 +108,16 @@ module "control_plane_worker" {
     ] : [],
     local.use_vercel_backend && var.vercel_base_snapshot_id == "" ? [
       { name = "VERCEL_BASE_SNAPSHOT_NAME", value = module.vercel_sandbox_infra[0].snapshot_name },
+    ] : [],
+    local.use_generic_backend ? [
+      { name = "GENERIC_SANDBOX_URL", value = var.generic_sandbox_url },
+      { name = "GENERIC_SANDBOX_SUPPORTS_SNAPSHOTS", value = tostring(var.generic_sandbox_supports_snapshots) },
+      { name = "GENERIC_SANDBOX_SUPPORTS_RESTORE", value = tostring(var.generic_sandbox_supports_restore) },
+      { name = "GENERIC_SANDBOX_SUPPORTS_RESUME", value = tostring(var.generic_sandbox_supports_resume) },
+      { name = "GENERIC_SANDBOX_SUPPORTS_STOP", value = tostring(var.generic_sandbox_supports_stop) },
+    ] : [],
+    var.sandbox_connecting_timeout_ms > 0 ? [
+      { name = "SANDBOX_CONNECTING_TIMEOUT_MS", value = tostring(var.sandbox_connecting_timeout_ms) },
     ] : []
   )
 
@@ -136,6 +146,9 @@ module "control_plane_worker" {
     ] : [],
     local.use_vercel_backend ? [
       { name = "VERCEL_TOKEN", value = var.vercel_sandbox_token },
+    ] : [],
+    local.use_generic_backend ? [
+      { name = "GENERIC_SANDBOX_TOKEN", value = var.generic_sandbox_token },
     ] : [],
     # Slack bot token enables the agent-initiated `slack-notify` endpoint.
     # Shares the variable with the slack-bot worker; bound here so the same

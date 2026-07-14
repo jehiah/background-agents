@@ -199,6 +199,12 @@ variable "github_bot_username" {
   default     = ""
 }
 
+variable "github_default_model" {
+  description = "Default model for sessions created by the GitHub bot"
+  type        = string
+  default     = "anthropic/claude-haiku-4-5"
+}
+
 # =============================================================================
 # Slack App Credentials
 # =============================================================================
@@ -446,6 +452,53 @@ variable "vercel_snapshot_expiration_ms" {
   default     = 0
 }
 
+variable "generic_sandbox_url" {
+  description = "Base URL for the generic sandbox provider protocol (e.g. https://sandbox.example.com/api)"
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.sandbox_provider != "generic" || length(var.generic_sandbox_url) > 0
+    error_message = "generic_sandbox_url must be set when sandbox_provider = 'generic'."
+  }
+}
+
+variable "generic_sandbox_token" {
+  description = "Static bearer token for the generic sandbox provider"
+  type        = string
+  sensitive   = true
+  default     = ""
+
+  validation {
+    condition     = var.sandbox_provider != "generic" || length(var.generic_sandbox_token) > 0
+    error_message = "generic_sandbox_token must be set when sandbox_provider = 'generic'."
+  }
+}
+
+variable "generic_sandbox_supports_snapshots" {
+  description = "Whether the generic sandbox backend implements filesystem snapshots"
+  type        = bool
+  default     = false
+}
+
+variable "generic_sandbox_supports_restore" {
+  description = "Whether the generic sandbox backend implements restore-from-snapshot"
+  type        = bool
+  default     = false
+}
+
+variable "generic_sandbox_supports_resume" {
+  description = "Whether the generic sandbox backend implements persistent resume"
+  type        = bool
+  default     = true
+}
+
+variable "generic_sandbox_supports_stop" {
+  description = "Whether the generic sandbox backend implements explicit stop"
+  type        = bool
+  default     = true
+}
+
 variable "nextauth_secret" {
   description = "NextAuth.js secret (generate with: openssl rand -base64 32)"
   type        = string
@@ -457,13 +510,13 @@ variable "nextauth_secret" {
 # =============================================================================
 
 variable "sandbox_provider" {
-  description = "Sandbox backend for session execution: 'modal', 'daytona', 'vercel', or 'opencomputer'"
+  description = "Sandbox backend for session execution: 'modal', 'daytona', 'vercel', 'opencomputer', or 'generic'"
   type        = string
   default     = "modal"
 
   validation {
-    condition     = contains(["modal", "daytona", "vercel", "opencomputer"], var.sandbox_provider)
-    error_message = "sandbox_provider must be 'modal', 'daytona', 'vercel', or 'opencomputer'."
+    condition     = contains(["modal", "daytona", "vercel", "opencomputer", "generic"], var.sandbox_provider)
+    error_message = "sandbox_provider must be 'modal', 'daytona', 'vercel', 'opencomputer', or 'generic'."
   }
 }
 
@@ -471,6 +524,12 @@ variable "sandbox_inactivity_timeout_ms" {
   description = "Milliseconds of sandbox inactivity before OpenInspect snapshots and stops the sandbox when no clients are connected."
   type        = number
   default     = 600000
+}
+
+variable "sandbox_connecting_timeout_ms" {
+  description = "Initial-connect watchdog in milliseconds: max time a sandbox may stay in 'connecting' before being failed. Increase for slower-provisioning sandbox providers. 0 uses the built-in default (120000 = 2 min)."
+  type        = number
+  default     = 0
 }
 
 variable "web_platform" {

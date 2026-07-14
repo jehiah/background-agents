@@ -84,6 +84,17 @@ export {
   type OpenComputerDeleteSandboxOptions,
 } from "./opencomputer-rest-client";
 export {
+  GenericSandboxProvider,
+  createGenericProvider,
+  type GenericProviderConfig,
+} from "./providers/generic-provider";
+export {
+  GenericSandboxClient,
+  GenericSandboxApiError,
+  createGenericSandboxClient,
+  type GenericSandboxClientConfig,
+} from "./generic-client";
+export {
   resolveSandboxBackendName,
   isModalSandboxBackend,
   type SandboxBackendName,

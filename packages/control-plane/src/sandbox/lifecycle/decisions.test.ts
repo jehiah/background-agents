@@ -643,6 +643,19 @@ describe("evaluateInactivityTimeout", () => {
     expect(decision.action).toBe("timeout");
   });
 
+  it('returns "timeout" for unknown status so the watchdog cleans up after a cancel', () => {
+    const now = Date.now();
+    const state: InactivityState = {
+      lastActivity: now - config.timeoutMs - 1000,
+      status: "unknown",
+      connectedClientCount: 0,
+    };
+
+    const decision = evaluateInactivityTimeout(state, config, now);
+
+    expect(decision.action).toBe("timeout");
+  });
+
   it("uses default config values correctly", () => {
     expect(DEFAULT_INACTIVITY_CONFIG.timeoutMs).toBe(10 * 60 * 1000);
     expect(DEFAULT_INACTIVITY_CONFIG.extensionMs).toBe(5 * 60 * 1000);

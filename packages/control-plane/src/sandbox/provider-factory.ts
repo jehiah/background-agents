@@ -1,6 +1,7 @@
 import { createModalClient } from "./client";
 import { createDaytonaRestClient } from "./daytona-rest-client";
 import { createOpenComputerRestClient } from "./opencomputer-rest-client";
+import { createGenericSandboxClient } from "./generic-client";
 import { resolveSandboxBackendName, type SandboxBackendName } from "./provider-name";
 import type { SandboxProvider } from "./provider";
 import { createDaytonaProvider, type DaytonaSandboxProvider } from "./providers/daytona-provider";
@@ -9,6 +10,10 @@ import {
   createOpenComputerProvider,
   type OpenComputerSandboxProvider,
 } from "./providers/opencomputer-provider";
+import {
+  createGenericProvider,
+  type GenericSandboxProvider,
+} from "./providers/generic-provider";
 import { createVercelSandboxClient } from "./providers/vercel/client";
 import { createVercelProvider, type VercelSandboxProvider } from "./providers/vercel/provider";
 import { resolveScmProviderFromEnv } from "../source-control";
@@ -81,6 +86,27 @@ function createOpenComputerProviderFromEnv(env: Env): OpenComputerSandboxProvide
   });
 }
 
+function createGenericProviderFromEnv(env: Env): GenericSandboxProvider {
+  if (!env.GENERIC_SANDBOX_URL || !env.GENERIC_SANDBOX_TOKEN) {
+    throw new Error(
+      "GENERIC_SANDBOX_URL and GENERIC_SANDBOX_TOKEN are required when SANDBOX_PROVIDER=generic"
+    );
+  }
+
+  const client = createGenericSandboxClient({
+    baseUrl: env.GENERIC_SANDBOX_URL,
+    bearerToken: env.GENERIC_SANDBOX_TOKEN,
+  });
+
+  return createGenericProvider(client, {
+    supportsSnapshots: env.GENERIC_SANDBOX_SUPPORTS_SNAPSHOTS === "true",
+    supportsRestore: env.GENERIC_SANDBOX_SUPPORTS_RESTORE === "true",
+    // Persistent resume and explicit stop default on; opt out with "false".
+    supportsPersistentResume: env.GENERIC_SANDBOX_SUPPORTS_RESUME !== "false",
+    supportsExplicitStop: env.GENERIC_SANDBOX_SUPPORTS_STOP !== "false",
+  });
+}
+
 function createDaytonaProviderFromEnv(env: Env): DaytonaSandboxProvider {
   if (!env.DAYTONA_API_URL || !env.DAYTONA_API_KEY || !env.DAYTONA_BASE_SNAPSHOT) {
     throw new Error(
@@ -121,6 +147,10 @@ export function createSandboxProviderFromEnv(
 ): OpenComputerSandboxProvider;
 export function createSandboxProviderFromEnv(
   env: Env,
+  backend: "generic"
+): GenericSandboxProvider;
+export function createSandboxProviderFromEnv(
+  env: Env,
   backend?: SandboxBackendName
 ): SandboxProvider;
 export function createSandboxProviderFromEnv(
@@ -134,6 +164,8 @@ export function createSandboxProviderFromEnv(
       return createVercelProviderFromEnv(env);
     case "opencomputer":
       return createOpenComputerProviderFromEnv(env);
+    case "generic":
+      return createGenericProviderFromEnv(env);
     case "modal":
       return createModalProviderFromEnv(env);
   }

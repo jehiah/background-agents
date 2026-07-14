@@ -220,6 +220,7 @@ export function SandboxStatus({
     running: "text-accent",
     stopped: "text-muted-foreground",
     stale: "text-muted-foreground",
+    unknown: "text-muted-foreground",
     failed: "text-destructive",
   };
 
@@ -268,6 +269,11 @@ export function CombinedStatusDot({
     label = "Connecting...";
   } else if (sandboxStatus === "failed") {
     color = "bg-destructive";
+    label = `Connected \u00b7 Sandbox: ${sandboxStatus}`;
+  } else if (sandboxStatus === "unknown") {
+    // Cancelled: the provider instance may still be running; the watchdog will
+    // reconcile. Show a neutral dot rather than a misleading "success" green.
+    color = "bg-muted-foreground";
     label = `Connected \u00b7 Sandbox: ${sandboxStatus}`;
   } else if (["pending", "warming", "spawning", "syncing"].includes(sandboxStatus || "")) {
     color = "bg-warning";
