@@ -21,7 +21,11 @@ export type SandboxStatus =
   | "stale"
   | "snapshotting"
   | "stopped"
-  | "failed";
+  | "failed"
+  // Set when execution was cancelled but the provider sandbox may still be
+  // running. The inactivity watchdog reconciles it: it issues a provider stop,
+  // and a reconnecting bridge transitions it back to "ready".
+  | "unknown";
 export type GitSyncStatus = "pending" | "in_progress" | "completed" | "failed";
 export type MessageStatus = "pending" | "processing" | "completed" | "failed";
 export type MessageSource = "web" | "slack" | "linear" | "extension" | "github" | "automation";
@@ -64,6 +68,7 @@ export const sandboxStatusSchema = z.enum([
   "snapshotting",
   "stopped",
   "failed",
+  "unknown",
 ]);
 export const gitSyncStatusSchema = z.enum(["pending", "in_progress", "completed", "failed"]);
 export const artifactTypeSchema = z.enum(["pr", "screenshot", "video", "preview", "branch"]);
