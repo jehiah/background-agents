@@ -20,7 +20,7 @@
 terraform {
   backend "s3" {
     bucket = "open-inspect-terraform-state"
-    key    = "production/terraform-dev.tfstate"
+    key    = "production/terraform.tfstate"
     region = "auto"
 
     # All sensitive/account-specific values passed via -backend-config
