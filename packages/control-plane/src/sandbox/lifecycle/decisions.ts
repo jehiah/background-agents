@@ -383,8 +383,9 @@ export function evaluateInactivityTimeout(
     return { action: "schedule", nextCheckMs: config.minCheckIntervalMs };
   }
 
-  // Only check inactivity for ready or running sandboxes
-  if (state.status !== "ready" && state.status !== "running") {
+  // Only check inactivity for ready/running sandboxes, plus "unknown" sandboxes
+  // (left behind by a cancel) so the watchdog reconciles and stops them.
+  if (state.status !== "ready" && state.status !== "running" && state.status !== "unknown") {
     return { action: "schedule", nextCheckMs: config.minCheckIntervalMs };
   }
 
@@ -499,6 +500,8 @@ export interface ConnectingTimeoutConfig {
  * Default connecting timeout: 2 minutes.
  * Boot sequence (git clone → setup.sh → start.sh → opencode → bridge connect) typically
  * takes 30–90 seconds. Two minutes provides margin without leaving users waiting too long.
+ * Override per-deployment with the SANDBOX_CONNECTING_TIMEOUT_MS env var (e.g. for slower
+ * provisioning on custom sandbox providers).
  */
 export const DEFAULT_CONNECTING_TIMEOUT_CONFIG: ConnectingTimeoutConfig = {
   timeoutMs: 120_000,

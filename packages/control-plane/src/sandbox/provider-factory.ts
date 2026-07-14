@@ -2,6 +2,7 @@ import { createModalClient } from "./client";
 import { createDaytonaRestClient } from "./daytona-rest-client";
 import { createE2BRestClient } from "./e2b-rest-client";
 import { createOpenComputerRestClient } from "./opencomputer-rest-client";
+import { createGenericSandboxClient } from "./generic-client";
 import { resolveSandboxBackendName, type SandboxBackendName } from "./provider-name";
 import type { SandboxProvider } from "./provider";
 import { createDaytonaProvider, type DaytonaSandboxProvider } from "./providers/daytona-provider";
@@ -16,6 +17,7 @@ import {
   createOpenComputerProvider,
   type OpenComputerSandboxProvider,
 } from "./providers/opencomputer-provider";
+import { createGenericProvider, type GenericSandboxProvider } from "./providers/generic-provider";
 import { createVercelSandboxClient } from "./providers/vercel/client";
 import { createVercelProvider, type VercelSandboxProvider } from "./providers/vercel/provider";
 import { resolveScmProviderFromEnv } from "../source-control";
@@ -94,6 +96,28 @@ function createOpenComputerProviderFromEnv(
   });
 }
 
+function createGenericProviderFromEnv(env: Env): GenericSandboxProvider {
+  if (!env.GENERIC_SANDBOX_URL || !env.GENERIC_SANDBOX_TOKEN) {
+    throw new Error(
+      "GENERIC_SANDBOX_URL and GENERIC_SANDBOX_TOKEN are required when SANDBOX_PROVIDER=generic"
+    );
+  }
+
+  const client = createGenericSandboxClient({
+    baseUrl: env.GENERIC_SANDBOX_URL,
+    bearerToken: env.GENERIC_SANDBOX_TOKEN,
+  });
+
+  return createGenericProvider(client, {
+    // Sandbox timeout enforcement, persistent resume, and explicit stop default on; opt out with "false".
+    supportsSandboxTimeout: env.GENERIC_SANDBOX_SUPPORTS_SANDBOX_TIMEOUT !== "false",
+    supportsSnapshots: env.GENERIC_SANDBOX_SUPPORTS_SNAPSHOTS === "true",
+    supportsRestore: env.GENERIC_SANDBOX_SUPPORTS_RESTORE === "true",
+    supportsPersistentResume: env.GENERIC_SANDBOX_SUPPORTS_RESUME !== "false",
+    supportsExplicitStop: env.GENERIC_SANDBOX_SUPPORTS_STOP !== "false",
+  });
+}
+
 function createDaytonaProviderFromEnv(env: Env): DaytonaSandboxProvider {
   if (!env.DAYTONA_API_URL || !env.DAYTONA_API_KEY || !env.DAYTONA_BASE_SNAPSHOT) {
     throw new Error(
@@ -157,6 +181,7 @@ export function createSandboxProviderFromEnv(
   backend: "opencomputer",
   options?: { requireOpenComputerTemplate?: boolean }
 ): OpenComputerSandboxProvider;
+export function createSandboxProviderFromEnv(env: Env, backend: "generic"): GenericSandboxProvider;
 export function createSandboxProviderFromEnv(
   env: Env,
   backend?: SandboxBackendName,
@@ -178,6 +203,8 @@ export function createSandboxProviderFromEnv(
       });
     case "e2b":
       return createE2BProviderFromEnv(env);
+    case "generic":
+      return createGenericProviderFromEnv(env);
     case "modal":
       return createModalProviderFromEnv(env);
   }

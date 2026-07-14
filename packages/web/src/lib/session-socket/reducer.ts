@@ -228,7 +228,8 @@ function reduceServerMessage(
         isReplacementStart ||
         message.status === "stale" ||
         message.status === "stopped" ||
-        message.status === "failed";
+        message.status === "failed" ||
+        message.status === "unknown";
       return updateSessionState(state, (prev) => ({
         ...prev,
         sandboxStatus: message.status,

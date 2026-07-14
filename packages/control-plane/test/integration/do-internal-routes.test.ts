@@ -382,7 +382,7 @@ describe("DO internal sub-session routes", () => {
       expect(body.error).toBe("Session not found");
     });
 
-    it("stops sandbox when cancelling an active session", async () => {
+    it("marks the sandbox unknown when cancelling an active session", async () => {
       const { stub } = await initSession({
         repoOwner: "acme",
         repoName: "web-app",
@@ -397,9 +397,11 @@ describe("DO internal sub-session routes", () => {
       const res = await stub.fetch("http://internal/internal/cancel", { method: "POST" });
       expect(res.status).toBe(200);
 
-      // Verify sandbox was stopped
+      // Cancel signals the bridge to shut down but cannot confirm the provider
+      // instance actually stopped, so the sandbox is left "unknown" for the
+      // inactivity watchdog to reconcile rather than marked "stopped" outright.
       const sandbox = await queryDO<{ status: string }>(stub, "SELECT status FROM sandbox LIMIT 1");
-      expect(sandbox[0].status).toBe("stopped");
+      expect(sandbox[0].status).toBe("unknown");
     });
   });
 

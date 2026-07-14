@@ -143,6 +143,17 @@ module "control_plane_worker" {
       { name = "E2B_TEMPLATE_ID", value = var.e2b_template_id },
       { name = "E2B_SANDBOX_TIMEOUT_SECONDS", value = tostring(var.e2b_sandbox_timeout_seconds) },
       { name = "E2B_AUTO_PAUSE", value = tostring(var.e2b_auto_pause) },
+    ] : [],
+    local.use_generic_backend ? [
+      { name = "GENERIC_SANDBOX_URL", value = var.generic_sandbox_url },
+      { name = "GENERIC_SANDBOX_SUPPORTS_SANDBOX_TIMEOUT", value = tostring(var.generic_sandbox_supports_sandbox_timeout) },
+      { name = "GENERIC_SANDBOX_SUPPORTS_SNAPSHOTS", value = tostring(var.generic_sandbox_supports_snapshots) },
+      { name = "GENERIC_SANDBOX_SUPPORTS_RESTORE", value = tostring(var.generic_sandbox_supports_restore) },
+      { name = "GENERIC_SANDBOX_SUPPORTS_RESUME", value = tostring(var.generic_sandbox_supports_resume) },
+      { name = "GENERIC_SANDBOX_SUPPORTS_STOP", value = tostring(var.generic_sandbox_supports_stop) },
+    ] : [],
+    var.sandbox_connecting_timeout_ms > 0 ? [
+      { name = "SANDBOX_CONNECTING_TIMEOUT_MS", value = tostring(var.sandbox_connecting_timeout_ms) },
     ] : []
   )
 
@@ -187,6 +198,9 @@ module "control_plane_worker" {
     ] : [],
     local.use_e2b_backend ? [
       { name = "E2B_API_KEY", value = var.e2b_api_key },
+    ] : [],
+    local.use_generic_backend ? [
+      { name = "GENERIC_SANDBOX_TOKEN", value = var.generic_sandbox_token },
     ] : [],
     # Slack bot token enables the agent-initiated `slack-notify` endpoint.
     # Shares the variable with the slack-bot worker; bound here so the same
