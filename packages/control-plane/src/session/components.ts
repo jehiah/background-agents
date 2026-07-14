@@ -49,7 +49,10 @@ import type { McpServerLookup, SlackAgentNotifyLookup } from "../sandbox/lifecyc
 // The composition root shares the internal access collaborator with shutdown and lifecycle only.
 // eslint-disable-next-line no-restricted-imports
 import { SandboxAccess } from "../sandbox/lifecycle/sandbox-access";
-import { resolveBootBudgetTimeoutMs } from "../sandbox/lifecycle/decisions";
+import {
+  resolveBootBudgetTimeoutMs,
+  resolveConnectingTimeoutMs,
+} from "../sandbox/lifecycle/decisions";
 import { McpServerStore } from "../db/mcp-servers";
 import { UserStore } from "../db/user-store";
 import { IntegrationSettingsStore, resolveSlackSettings } from "../db/integration-settings";
@@ -1125,10 +1128,28 @@ function createLifecycleManager(deps: LifecycleManagerDeps): SandboxLifecycleMan
     },
   };
 
-  // A malformed budget must not take every session down at construction the
+  // A malformed timeout must not take every session down at construction the
   // way a missing provider does; it falls back to the default and says so.
+  // Resolved before the boot budget, which is bounded by the watchdog it ends
+  // up with rather than by the built-in default.
+  const connectingTimeout = resolveConnectingTimeoutMs(env.SANDBOX_CONNECTING_TIMEOUT_MS, {
+    defaultTimeoutMs: DEFAULT_LIFECYCLE_CONFIG.connectingTimeout.timeoutMs,
+    maxTimeoutMs: DEFAULT_LIFECYCLE_CONFIG.bootBudget.timeoutMs,
+  });
+  if (connectingTimeout.rejectedValue !== null) {
+    createLogger("session-do", {}, parseLogLevel(env.LOG_LEVEL)).warn(
+      "Ignoring SANDBOX_CONNECTING_TIMEOUT_MS; using the default connect watchdog",
+      {
+        event: "config.invalid",
+        rejected_value: connectingTimeout.rejectedValue,
+        must_be_below_ms: DEFAULT_LIFECYCLE_CONFIG.bootBudget.timeoutMs,
+        timeout_ms: connectingTimeout.timeoutMs,
+      }
+    );
+  }
+
   const bootBudget = resolveBootBudgetTimeoutMs(env.SANDBOX_BOOT_TIMEOUT_MS, {
-    connectingTimeoutMs: DEFAULT_LIFECYCLE_CONFIG.connectingTimeout.timeoutMs,
+    connectingTimeoutMs: connectingTimeout.timeoutMs,
     defaultTimeoutMs: DEFAULT_LIFECYCLE_CONFIG.bootBudget.timeoutMs,
   });
   if (bootBudget.rejectedValue !== null) {
@@ -1137,7 +1158,7 @@ function createLifecycleManager(deps: LifecycleManagerDeps): SandboxLifecycleMan
       {
         event: "config.invalid",
         rejected_value: bootBudget.rejectedValue,
-        must_exceed_ms: DEFAULT_LIFECYCLE_CONFIG.connectingTimeout.timeoutMs,
+        must_exceed_ms: connectingTimeout.timeoutMs,
         timeout_ms: bootBudget.timeoutMs,
       }
     );
@@ -1155,6 +1176,12 @@ function createLifecycleManager(deps: LifecycleManagerDeps): SandboxLifecycleMan
       ...DEFAULT_LIFECYCLE_CONFIG.inactivity,
       timeoutMs: parseInt(env.SANDBOX_INACTIVITY_TIMEOUT_MS || "600000", 10),
     },
+    // Both knobs move together: the watchdog that fails an unconnected sandbox
+    // and the staleness bound that lets a replacement spawn must agree, or a
+    // healthy sandbox still inside the watchdog window gets a second one
+    // spawned alongside it. See CONNECT_WATCHDOG_MS.
+    connectingTimeout: { timeoutMs: connectingTimeout.timeoutMs },
+    spawn: { ...DEFAULT_LIFECYCLE_CONFIG.spawn, spawningTimeoutMs: connectingTimeout.timeoutMs },
     bootBudget: { timeoutMs: bootBudget.timeoutMs },
     mcpServerLookup,
     slackAgentNotifyLookup,

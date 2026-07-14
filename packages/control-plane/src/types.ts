@@ -62,7 +62,7 @@ export interface EnvConfig {
   ALLOWED_GITHUB_ORGS?: string;
   UNSAFE_ALLOW_ALL_USERS?: string;
   CF_ACCOUNT_ID?: string; // Cloudflare account ID
-  SANDBOX_PROVIDER?: string; // "modal" (default), "daytona", "vercel", "opencomputer", or "e2b"
+  SANDBOX_PROVIDER?: string; // "modal" (default), "daytona", "vercel", "opencomputer", "e2b", or "generic"
   MODAL_WORKSPACE?: string; // Modal workspace name
   MODAL_ENVIRONMENT?: string; // Modal environment name for dashboard URLs
   MODAL_ENVIRONMENT_WEB_SUFFIX?: string; // Modal environment web suffix for endpoint URLs
@@ -86,6 +86,13 @@ export interface EnvConfig {
   VERCEL_RUNTIME?: string; // Vercel sandbox runtime (default: node24)
   VERCEL_SANDBOX_API_BASE_URL?: string; // Override for tests or non-default Vercel API base URL
   VERCEL_SNAPSHOT_EXPIRATION_MS?: string; // Snapshot expiration in ms; 0 means no expiration
+  GENERIC_SANDBOX_URL?: string; // Base URL for the generic sandbox provider protocol
+  GENERIC_SANDBOX_TOKEN?: string; // Static bearer token for the generic sandbox provider
+  GENERIC_SANDBOX_SUPPORTS_SANDBOX_TIMEOUT?: string; // "false" if the backend does not enforce timeoutSeconds (default: true)
+  GENERIC_SANDBOX_SUPPORTS_SNAPSHOTS?: string; // "true" to enable filesystem snapshots (default: false)
+  GENERIC_SANDBOX_SUPPORTS_RESTORE?: string; // "true" to enable restore-from-snapshot (default: false)
+  GENERIC_SANDBOX_SUPPORTS_RESUME?: string; // "false" to disable persistent resume (default: true)
+  GENERIC_SANDBOX_SUPPORTS_STOP?: string; // "false" to disable explicit stop (default: true)
 
   E2B_API_KEY?: string; // E2B REST API key (X-API-Key header + HMAC derivation)
   E2B_API_URL?: string; // E2B REST API base URL (default https://api.e2b.app)
@@ -96,6 +103,7 @@ export interface EnvConfig {
   // Sandbox lifecycle configuration
   SANDBOX_INACTIVITY_TIMEOUT_MS?: string; // Inactivity timeout in ms (default: 600000 = 10 min)
   SANDBOX_BOOT_TIMEOUT_MS?: string; // Longest a connected sandbox may boot before it is failed, in ms; defaults to DEFAULT_BOOT_BUDGET_CONFIG
+  SANDBOX_CONNECTING_TIMEOUT_MS?: string; // Initial-connect watchdog in ms; defaults to DEFAULT_CONNECTING_TIMEOUT_CONFIG
   EXECUTION_TIMEOUT_MS?: string; // Max processing time for one message before auto-fail, for sessions and for the automation runs watching them; overridden per session by sandboxTimeoutMs, and falls back to DEFAULT_SANDBOX_TIMEOUT_SECONDS
   SECRETS_CAP_ENFORCEMENT?: string; // "enforce" (default) fails spawn/build on oversized secret payloads; set "warn" to only log
   TEAMS_ENFORCEMENT?: string; // "off" | "shadow" (default) | "on"

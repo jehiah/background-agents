@@ -623,6 +623,8 @@ export interface ConnectingTimeoutConfig {
 /**
  * Default connecting timeout for the initial-connect watchdog.
  * Shares CONNECT_WATCHDOG_MS with DEFAULT_SPAWN_CONFIG.spawningTimeoutMs; see the rationale there.
+ * SANDBOX_CONNECTING_TIMEOUT_MS overrides both together (slower-provisioning backends); overriding
+ * one alone is the drift that rationale warns about.
  */
 export const DEFAULT_CONNECTING_TIMEOUT_CONFIG: ConnectingTimeoutConfig = {
   timeoutMs: CONNECT_WATCHDOG_MS,
@@ -762,6 +764,32 @@ export function resolveBootBudgetTimeoutMs(
   }
   const parsed = /^[1-9]\d*$/.test(raw) ? Number(raw) : Number.NaN;
   if (Number.isSafeInteger(parsed) && parsed > bounds.connectingTimeoutMs) {
+    return { timeoutMs: parsed, rejectedValue: null };
+  }
+  return { timeoutMs: bounds.defaultTimeoutMs, rejectedValue: raw };
+}
+
+/**
+ * Resolve the initial-connect watchdog from its deployment knob
+ * (SANDBOX_CONNECTING_TIMEOUT_MS), which exists for backends that provision
+ * more slowly than the built-in default allows. The value must be a whole
+ * positive integer of milliseconds below `maxTimeoutMs`: the watchdog and the
+ * boot budget are both measured from the reservation, and a watchdog at or
+ * above the budget would never get to fire. Anything else resolves to the
+ * default and is reported through `rejectedValue`. An unset knob is not a
+ * rejection.
+ *
+ * Pure function: no side effects.
+ */
+export function resolveConnectingTimeoutMs(
+  raw: string | undefined,
+  bounds: { defaultTimeoutMs: number; maxTimeoutMs: number }
+): { timeoutMs: number; rejectedValue: string | null } {
+  if (raw === undefined || raw === "") {
+    return { timeoutMs: bounds.defaultTimeoutMs, rejectedValue: null };
+  }
+  const parsed = /^[1-9]\d*$/.test(raw) ? Number(raw) : Number.NaN;
+  if (Number.isSafeInteger(parsed) && parsed < bounds.maxTimeoutMs) {
     return { timeoutMs: parsed, rejectedValue: null };
   }
   return { timeoutMs: bounds.defaultTimeoutMs, rejectedValue: raw };

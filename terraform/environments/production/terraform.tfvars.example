@@ -120,6 +120,22 @@ e2b_template_id = ""           # e.g., "open-inspect-sandbox"
 # sandbox on inbound activity. Default true; set false to kill on timeout.
 # e2b_auto_pause = true
 
+# Generic sandbox provider (any backend implementing docs/SANDBOX_PROTOCOL.md over HTTP)
+# Only required when sandbox_provider = "generic"
+generic_sandbox_url   = "" # e.g., "https://sandbox.example.com/api"
+generic_sandbox_token = "" # Static bearer token
+# Capability flags — default to a persistent backend (resume + stop, no snapshots) that
+# enforces the sandbox timeout it's given.
+# generic_sandbox_supports_sandbox_timeout = true
+# generic_sandbox_supports_snapshots = false
+# generic_sandbox_supports_restore   = false
+# generic_sandbox_supports_resume    = true
+# generic_sandbox_supports_stop      = true
+
+# Initial-connect watchdog: max ms a sandbox may stay "connecting" before being failed.
+# Raise this if your sandbox provider provisions slowly. 0 uses the built-in default (4 min).
+# sandbox_connecting_timeout_ms = 480000 # 8 minutes
+
 # =============================================================================
 # GitHub App Credentials
 # =============================================================================
@@ -299,6 +315,7 @@ nextauth_secret = ""
 # - "vercel": Vercel Sandbox API with filesystem snapshot restore
 # - "opencomputer": OpenComputer declarative-template sandboxes with hibernate/resume
 # - "e2b": direct E2B REST API integration with pause/resume
+# - "generic": any backend implementing docs/SANDBOX_PROTOCOL.md over HTTP (base URL + bearer token)
 # Select "modal-vm" for Docker-capable VMs (deployment-wide; see docs/MODAL_DOCKER.md).
 sandbox_provider = "modal"
 
