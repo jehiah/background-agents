@@ -125,6 +125,7 @@ function createHandler() {
   const getSandboxSocket = vi.fn<() => WebSocket | null>();
   const sendToSandbox = vi.fn();
   const updateSandboxStatus = vi.fn();
+  const stopSandbox = vi.fn<(reason: string) => Promise<void>>().mockResolvedValue(undefined);
 
   const lifecycleHandler = createSessionLifecycleHandler({
     sessionCoreRepository: repository as unknown as SessionCoreRepository,
@@ -148,6 +149,7 @@ function createHandler() {
     getSandboxSocket,
     sendToSandbox,
     updateSandboxStatus,
+    stopSandbox,
   });
 
   // Bind the request-scoped log so call sites exercise the threading without
@@ -180,6 +182,7 @@ function createHandler() {
     getSandboxSocket,
     sendToSandbox,
     updateSandboxStatus,
+    stopSandbox,
   };
 }
 
@@ -845,8 +848,9 @@ describe("createSessionLifecycleHandler", () => {
     expect(await response.json()).toEqual({ error: "Not authorized to archive this session" });
   });
 
-  it("archives successfully for participant", async () => {
-    const { handler, getSession, getParticipantByUserId, transition } = createHandler();
+  it("archives successfully for participant and stops the sandbox", async () => {
+    const { handler, getSession, getParticipantByUserId, transition, stopSandbox } =
+      createHandler();
     getSession.mockReturnValue(createSession());
     getParticipantByUserId.mockReturnValue(createParticipant());
     transition.mockResolvedValue(true);
@@ -862,6 +866,7 @@ describe("createSessionLifecycleHandler", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ status: "archived" });
     expect(transition).toHaveBeenCalledWith("archived");
+    expect(stopSandbox).toHaveBeenCalledWith("session_archived");
   });
 
   it("archives a draft that was never prompted", async () => {
@@ -1066,6 +1071,6 @@ describe("createSessionLifecycleHandler", () => {
     expect(await response.json()).toEqual({ status: "cancelled" });
     expect(cancelSession).toHaveBeenCalledOnce();
     expect(sendToSandbox).toHaveBeenCalledWith(ws, { type: "shutdown" });
-    expect(updateSandboxStatus).toHaveBeenCalledWith("stopped");
+    expect(updateSandboxStatus).toHaveBeenCalledWith("unknown");
   });
 });

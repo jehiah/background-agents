@@ -23,6 +23,7 @@ export type SandboxStatus =
   | "stale"
   | "snapshotting"
   | "stopped"
+  | "unknown"
   | "failed";
 
 export const sandboxStatusSchema = z.enum([
@@ -36,6 +37,7 @@ export const sandboxStatusSchema = z.enum([
   "stale",
   "snapshotting",
   "stopped",
+  "unknown",
   "failed",
 ]);
 

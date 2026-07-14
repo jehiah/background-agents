@@ -979,7 +979,11 @@ export class SandboxLifecycleManager implements SandboxLifecycle {
     const session = this.storage.getSession();
 
     if (!sandbox?.modal_object_id || !session) {
-      this.log.debug("Cannot snapshot: no modal_object_id or session");
+      this.log.warn("Skipping snapshot: missing provider object id or session", {
+        reason,
+        has_provider_object_id: !!sandbox?.modal_object_id,
+        has_session: !!session,
+      });
       return;
     }
 
@@ -1132,6 +1136,7 @@ export class SandboxLifecycleManager implements SandboxLifecycle {
     providerObjectId?: string
   ): Promise<void> {
     if (!this.provider.stopSandbox) {
+      this.log.warn("Skipping provider stop: provider does not support explicit stop", { reason });
       return;
     }
 
@@ -1139,6 +1144,14 @@ export class SandboxLifecycleManager implements SandboxLifecycle {
     const session = this.storage.getSession();
     const objectId = providerObjectId ?? sandbox?.modal_object_id;
     if (!objectId || !session) {
+      this.log.warn("Skipping provider stop: missing provider object id or session", {
+        reason,
+        session_id: session?.id,
+        sandbox_id: sandbox?.id,
+        has_provider_object_id: !!objectId,
+        has_session: !!session,
+        has_sandbox: !!sandbox,
+      });
       return;
     }
 
@@ -1152,6 +1165,63 @@ export class SandboxLifecycleManager implements SandboxLifecycle {
     if (!result.success) {
       throw new Error(result.error || "Failed to stop provider sandbox");
     }
+  }
+
+  /**
+   * Explicitly tear down the sandbox outside the timeout path (e.g. the session
+   * was archived). Mirrors the inactivity-timeout cleanup: provider-managed-stop
+   * backends get a clean provider stop; others snapshot, signal the bridge to
+   * shut down, then stop the provider sandbox when supported. Provider state is
+   * preserved where possible so an unarchive can resume/restore. Safe to call
+   * when there is no sandbox or it is already in a terminal state.
+   */
+  async stopSandbox(reason: string): Promise<void> {
+    const sandbox = this.storage.getSandbox();
+    if (!sandbox) {
+      this.log.debug("stopSandbox: no sandbox to stop", { reason });
+      return;
+    }
+    if (sandbox.status === "stopped" || sandbox.status === "failed") {
+      this.log.debug("stopSandbox: sandbox already terminal", {
+        reason,
+        sandbox_status: sandbox.status,
+      });
+      return;
+    }
+
+    this.log.info("Stopping sandbox", { event: "sandbox.stop", reason });
+
+    // Fail any stuck processing message before terminating.
+    await this.callbacks.onSandboxTerminating?.();
+    this.storage.updateSandboxStatus("stopped");
+    this.clearSandboxAccessState();
+    this.broadcaster.broadcast({ type: "sandbox_status", status: "stopped" });
+
+    if (this.usesProviderManagedStop()) {
+      try {
+        await this.stopProviderSandbox(reason);
+      } catch (error) {
+        this.log.error("Provider stop failed", {
+          reason,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    } else {
+      await this.triggerSnapshot(reason);
+      this.wsManager.sendToSandbox({ type: "shutdown" });
+      if (this.canStopProviderSandbox()) {
+        try {
+          await this.stopProviderSandbox(reason);
+        } catch (error) {
+          this.log.error("Provider stop failed", {
+            reason,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+    }
+
+    this.wsManager.detachSandboxWebSocket(1000, reason);
   }
 
   /**

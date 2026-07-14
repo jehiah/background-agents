@@ -89,6 +89,12 @@ const SANDBOX_STATUS_PRESENTATION: Record<
     color: "text-destructive",
     dot: "bg-destructive",
   },
+  unknown: {
+    label: "Unknown",
+    detail: "The sandbox state could not be confirmed after a cancel.",
+    color: "text-muted-foreground",
+    dot: "bg-muted-foreground",
+  },
 };
 
 export type SessionHeaderProps = {

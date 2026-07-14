@@ -709,6 +709,7 @@ export class SessionDO extends DurableObject<Env> {
         getSandboxSocket: () => this.wsManager.getSandboxSocket(),
         sendToSandbox: (ws, message) => this.wsManager.send(ws, message),
         updateSandboxStatus: (status) => this.updateSandboxStatus(status),
+        stopSandbox: (reason) => this.lifecycleManager.stopSandbox(reason),
       });
     }
 
@@ -1021,6 +1022,12 @@ export class SessionDO extends DurableObject<Env> {
       inactivity: {
         ...DEFAULT_LIFECYCLE_CONFIG.inactivity,
         timeoutMs: parseInt(this.env.SANDBOX_INACTIVITY_TIMEOUT_MS || "600000", 10),
+      },
+      connectingTimeout: {
+        ...DEFAULT_LIFECYCLE_CONFIG.connectingTimeout,
+        timeoutMs: this.env.SANDBOX_CONNECTING_TIMEOUT_MS
+          ? parseInt(this.env.SANDBOX_CONNECTING_TIMEOUT_MS, 10)
+          : DEFAULT_LIFECYCLE_CONFIG.connectingTimeout.timeoutMs,
       },
       mcpServerLookup,
       slackAgentNotifyLookup,

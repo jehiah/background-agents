@@ -213,11 +213,16 @@ Open-Inspect supports these sandbox backends:
 - **OpenComputer**: template-based sandboxes with checkpoint-backed prebuilt-image builds via the
   OpenComputer REST API
 - **E2B**: template-based sandboxes with persistent pause/resume via direct E2B REST API calls
+- **Generic**: any backend that implements the HTTP provider protocol
+  ([SANDBOX_PROTOCOL.md](https://github.com/ColeMurray/background-agents)), configured with a base
+  URL and a static bearer token
 
 Prebuilt-image builds are supported on Modal, Vercel, and OpenComputer. Saved filesystem state can
 be restored on those same providers for session resumes; Daytona and E2B use persistent sandboxes
 instead. For Daytona and E2B, the control plane stops or pauses the sandbox on inactivity or stale
-heartbeat, then resumes that same sandbox later.
+heartbeat, then resumes that same sandbox later. The generic provider declares its capabilities per
+deployment — by default it behaves like a persistent backend (resume + stop), and snapshot/restore
+are opt-in for backends that implement them.
 
 ### Clients
 
