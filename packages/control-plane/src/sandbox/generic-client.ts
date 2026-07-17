@@ -15,6 +15,8 @@
 import type { McpServerConfig, SandboxSettings } from "@open-inspect/shared";
 import { createLogger } from "../logger";
 import type { CorrelationContext } from "../logger";
+import type { SessionRepositoryInfo } from "./provider";
+import { toRepositoryConfigPayload } from "./sandbox-env";
 
 const log = createLogger("generic-sandbox-client");
 
@@ -60,6 +62,8 @@ export interface CreateSandboxRequest {
   sandboxId?: string;
   repoOwner: string;
   repoName: string;
+  /** Ordered multi-repo member list; primary mirrors repoOwner/repoName. */
+  repositories?: SessionRepositoryInfo[];
   controlPlaneUrl: string;
   sandboxAuthToken: string;
   provider?: string;
@@ -84,6 +88,8 @@ export interface RestoreSandboxRequest {
   controlPlaneUrl: string;
   repoOwner: string;
   repoName: string;
+  /** Ordered multi-repo member list; primary mirrors repoOwner/repoName. */
+  repositories?: SessionRepositoryInfo[];
   provider: string;
   model: string;
   userEnvVars?: Record<string, string>;
@@ -228,6 +234,7 @@ export class GenericSandboxClient {
         sandbox_id: request.sandboxId || null,
         repo_owner: request.repoOwner,
         repo_name: request.repoName,
+        repositories: request.repositories?.map(toRepositoryConfigPayload) || null,
         control_plane_url: request.controlPlaneUrl,
         sandbox_auth_token: request.sandboxAuthToken,
         opencode_session_id: request.opencodeSessionId || null,
@@ -283,6 +290,7 @@ export class GenericSandboxClient {
           session_id: request.sessionId,
           repo_owner: request.repoOwner,
           repo_name: request.repoName,
+          repositories: request.repositories?.map(toRepositoryConfigPayload) || null,
           provider: request.provider,
           model: request.model,
           branch: request.branch || null,

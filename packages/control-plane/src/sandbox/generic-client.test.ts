@@ -87,6 +87,55 @@ describe("GenericSandboxClient.createSandbox", () => {
     });
   });
 
+  it("forwards the multi-repo member list as repositories in snake_case", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      jsonResponse({
+        success: true,
+        data: { sandbox_id: "sbx-1", status: "running", created_at: 1 },
+      })
+    );
+
+    const client = createGenericSandboxClient(config);
+    await client.createSandbox({
+      sessionId: "session-1",
+      repoOwner: "acme",
+      repoName: "web",
+      controlPlaneUrl: "https://cp.test",
+      sandboxAuthToken: "auth-token",
+      repositories: [
+        { repoOwner: "acme", repoName: "web", baseBranch: "main" },
+        { repoOwner: "acme/team", repoName: "api", baseBranch: "develop" },
+      ],
+    });
+
+    const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string);
+    expect(body.repositories).toEqual([
+      { repo_owner: "acme", repo_name: "web", branch: "main" },
+      { repo_owner: "acme/team", repo_name: "api", branch: "develop" },
+    ]);
+  });
+
+  it("sends repositories: null when no member list is supplied", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      jsonResponse({
+        success: true,
+        data: { sandbox_id: "sbx-1", status: "running", created_at: 1 },
+      })
+    );
+
+    const client = createGenericSandboxClient(config);
+    await client.createSandbox({
+      sessionId: "session-1",
+      repoOwner: "acme",
+      repoName: "web",
+      controlPlaneUrl: "https://cp.test",
+      sandboxAuthToken: "auth-token",
+    });
+
+    const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string);
+    expect(body.repositories).toBeNull();
+  });
+
   it("throws GenericSandboxApiError on a non-OK status", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("nope", { status: 500 }));
     const client = createGenericSandboxClient(config);
@@ -119,6 +168,35 @@ describe("GenericSandboxClient.createSandbox", () => {
 });
 
 describe("GenericSandboxClient envelope operations", () => {
+  it("routes the multi-repo member list through session_config on restore", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(jsonResponse({ success: true, data: { sandbox_id: "sbx-1" } }));
+
+    const client = createGenericSandboxClient(config);
+    await client.restoreSandbox({
+      snapshotImageId: "img-1",
+      sessionId: "s",
+      sandboxId: "sbx-1",
+      sandboxAuthToken: "t",
+      controlPlaneUrl: "https://cp.test",
+      repoOwner: "acme",
+      repoName: "web",
+      provider: "anthropic",
+      model: "claude-sonnet-4-6",
+      repositories: [
+        { repoOwner: "acme", repoName: "web", baseBranch: "main" },
+        { repoOwner: "acme/team", repoName: "api", baseBranch: "develop" },
+      ],
+    });
+
+    const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string);
+    expect(body.session_config.repositories).toEqual([
+      { repo_owner: "acme", repo_name: "web", branch: "main" },
+      { repo_owner: "acme/team", repo_name: "api", branch: "develop" },
+    ]);
+  });
+
   it("returns a failure result (not a throw) when restore reports an error", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       jsonResponse({ success: false, error: "snapshot missing" })

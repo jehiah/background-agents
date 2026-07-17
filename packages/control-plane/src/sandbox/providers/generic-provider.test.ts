@@ -99,6 +99,22 @@ describe("GenericSandboxProvider.createSandbox", () => {
     });
   });
 
+  it("forwards the multi-repo member list to the client", async () => {
+    const client = createMockClient();
+    const provider = new GenericSandboxProvider(client);
+
+    const repositories = [
+      { repoOwner: "acme", repoName: "web", baseBranch: "main" },
+      { repoOwner: "acme/team", repoName: "api", baseBranch: "develop" },
+    ];
+    await provider.createSandbox({ ...baseCreateConfig, repositories });
+
+    expect(client.createSandbox).toHaveBeenCalledWith(
+      expect.objectContaining({ repositories }),
+      undefined
+    );
+  });
+
   it("classifies an API error by HTTP status", async () => {
     const client = createMockClient({
       createSandbox: vi.fn(async () => {
