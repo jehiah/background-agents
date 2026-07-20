@@ -35,11 +35,11 @@ const PATH_HEALTH = "/health";
 // Per-operation timeouts (ms)
 // ---------------------------------------------------------------------------
 
-const TIMEOUT_CREATE_MS = 90_000;
-const TIMEOUT_RESTORE_MS = 90_000;
+const TIMEOUT_CREATE_MS = 210_000;
+const TIMEOUT_RESTORE_MS = 210_000;
 const TIMEOUT_SNAPSHOT_MS = 120_000;
-const TIMEOUT_RESUME_MS = 60_000;
-const TIMEOUT_STOP_MS = 30_000;
+const TIMEOUT_RESUME_MS = 210_000;
+const TIMEOUT_STOP_MS = 120_000;
 const TIMEOUT_HEALTH_MS = 15_000;
 
 // ---------------------------------------------------------------------------
