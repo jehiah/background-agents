@@ -161,6 +161,7 @@ class Harness:
         self.turns = turns or []
         self.client_kwargs: dict[str, Any] = overrides.pop("client_kwargs", {})
         oauth_managed = overrides.pop("oauth_managed", False)
+        default_model = overrides.pop("default_model", "claude-sonnet-4-6")
         credential_client = overrides.pop("credential_client", None)
         environ = overrides.pop("environ", {"ANTHROPIC_API_KEY": "sk-ant-key", "PATH": "/bin"})
         transcript_exists = overrides.pop("transcript_exists", lambda _id, _dir, _cfg: False)
@@ -168,7 +169,7 @@ class Harness:
             workdir=tmp_path / "repo",
             config_dir=tmp_path / "claude",
             mcp_servers=overrides.pop("mcp_servers", ()),
-            default_model="claude-sonnet-4-6",
+            default_model=default_model,
             oauth_managed=oauth_managed,
             system_prompt_append=overrides.pop("system_prompt_append", None),
             tools=None,
@@ -266,6 +267,29 @@ class TestOpen:
     async def test_oauth_mode_without_a_client_is_deterministic(self, tmp_path: Path) -> None:
         h = Harness(tmp_path, oauth_managed=True)
         with pytest.raises(HarnessStartError):
+            await h.harness.open()
+
+    @pytest.mark.asyncio
+    async def test_vertex_model_selects_vertex_mode(self, tmp_path: Path) -> None:
+        credential_client = FakeCredentialClient(Issued())
+        h = Harness(
+            tmp_path,
+            default_model="google-vertex-anthropic/claude-sonnet-5-5",
+            oauth_managed=True,
+            credential_client=credential_client,
+            environ={"ANTHROPIC_API_KEY": "sk-ant-key", "ANTHROPIC_VERTEX_PROJECT_ID": "proj"},
+        )
+        await h.harness.open()
+        assert credential_client.calls == 0
+        assert h.harness.credential is not None
+        assert h.harness.credential.mode is ClaudeAuthMode.VERTEX
+        assert h.harness.wrapper_path is not None
+        assert "ANTHROPIC_API_KEY" in h.harness.wrapper_path.read_text()
+
+    @pytest.mark.asyncio
+    async def test_vertex_model_without_a_project_is_deterministic(self, tmp_path: Path) -> None:
+        h = Harness(tmp_path, default_model="google-vertex-anthropic/claude-sonnet-5-5")
+        with pytest.raises(HarnessStartError, match="ANTHROPIC_VERTEX_PROJECT_ID"):
             await h.harness.open()
 
 
@@ -407,6 +431,24 @@ class TestOptions:
         assert bare_model_id(None, "d") == "d"
         with pytest.raises(ValueError, match="openai"):
             bare_model_id("openai/gpt-5", "d")
+
+    def test_vertex_model_ids(self) -> None:
+        assert (
+            bare_model_id("google-vertex-anthropic/claude-sonnet-5-5", "d") == "claude-sonnet-5-5"
+        )
+        assert (
+            bare_model_id("google-vertex-anthropic/claude-sonnet-5-5@default", "d")
+            == "claude-sonnet-5-5"
+        )
+        assert (
+            bare_model_id("google-vertex-anthropic/claude-haiku-4-5@20251001", "d")
+            == "claude-haiku-4-5@20251001"
+        )
+
+    def test_dated_vertex_ids_keep_their_thinking_budget(self) -> None:
+        assert reasoning_options("claude-haiku-4-5@20251001", "high") == {
+            "thinking": {"type": "enabled", "budget_tokens": 16_000}
+        }
 
     def test_mcp_options_skip_disabled_and_empty(self) -> None:
         assert mcp_server_options(({"name": "x", "type": "local", "command": []},)) == {}
@@ -801,6 +843,33 @@ class TestReconnectPolicy:
         assert len(h.clients) == 2
         assert h.clients[1].options["model"] == "claude-opus-4-6"
         assert h.clients[1].options["resume"] == h.harness.session_id
+
+    @pytest.mark.asyncio
+    async def test_vertex_session_runs_vertex_models_and_rejects_anthropic(self, tmp_path: Path):
+        h = Harness(
+            tmp_path,
+            turns=[[_result(0.1)]],
+            default_model="google-vertex-anthropic/claude-sonnet-5-5",
+            environ={"ANTHROPIC_VERTEX_PROJECT_ID": "proj"},
+        )
+        await h.harness.open()
+        await h.harness.create_session()
+        _, outcome = await _run(
+            h.harness,
+            HarnessPrompt(
+                message_id="m1", text="a", model="google-vertex-anthropic/claude-sonnet-5-5"
+            ),
+        )
+        assert outcome.success is True
+        assert h.client.options["model"] == "claude-sonnet-5-5"
+        assert h.client.options["env"]["CLAUDE_CODE_USE_VERTEX"] == "1"
+        assert h.client.options["env"]["CLOUD_ML_REGION"] == "global"
+        _, rejected = await _run(
+            h.harness, HarnessPrompt(message_id="m2", text="b", model="anthropic/claude-opus-4-6")
+        )
+        assert rejected.success is False
+        assert "google-vertex-anthropic" in (rejected.error or "")
+        assert len(h.clients) == 1
 
     @pytest.mark.asyncio
     async def test_reconnect_budget_is_three_per_session(self, tmp_path: Path) -> None:

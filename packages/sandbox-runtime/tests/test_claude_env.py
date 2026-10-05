@@ -14,6 +14,7 @@ from sandbox_runtime.harness.claude_env import (
     CLI_BASH_MAX_TIMEOUT_SECONDS,
     OAUTH_CREDENTIAL_VARS,
     STREAM_SILENCE_MARGIN_SECONDS,
+    VERTEX_CREDENTIAL_VARS,
     ClaudeAuthMode,
     ClaudeCredential,
     bash_timeout_ceiling_seconds,
@@ -137,15 +138,49 @@ class TestSentinel:
 
 class TestDenylist:
     def test_modes_are_mutually_exclusive(self) -> None:
-        assert set(API_KEY_CREDENTIAL_VARS).isdisjoint(OAUTH_CREDENTIAL_VARS)
-        assert denylist_for(ClaudeAuthMode.OAUTH_TOKEN) == API_KEY_CREDENTIAL_VARS
-        assert denylist_for(ClaudeAuthMode.API_KEY) == OAUTH_CREDENTIAL_VARS
+        families = {
+            ClaudeAuthMode.API_KEY: set(API_KEY_CREDENTIAL_VARS),
+            ClaudeAuthMode.OAUTH_TOKEN: set(OAUTH_CREDENTIAL_VARS),
+            ClaudeAuthMode.VERTEX: set(VERTEX_CREDENTIAL_VARS),
+        }
+        for mode, own in families.items():
+            others = set().union(*(f for m, f in families.items() if m is not mode))
+            assert own.isdisjoint(others)
+            assert set(denylist_for(mode)) == others
 
     def test_only_anthropic_credentials_are_ever_stripped(self) -> None:
-        stripped = set(API_KEY_CREDENTIAL_VARS) | set(OAUTH_CREDENTIAL_VARS)
-        assert all(name.startswith(("ANTHROPIC_", "CLAUDE_CODE_OAUTH_")) for name in stripped)
-        for needed in ("SANDBOX_AUTH_TOKEN", "SESSION_CONFIG", "CONTROL_PLANE_URL", "PATH"):
+        stripped = (
+            set(API_KEY_CREDENTIAL_VARS) | set(OAUTH_CREDENTIAL_VARS) | set(VERTEX_CREDENTIAL_VARS)
+        )
+        assert all(
+            name.startswith(("ANTHROPIC_", "CLAUDE_CODE_OAUTH_", "CLAUDE_CODE_USE_VERTEX"))
+            for name in stripped
+        )
+        for needed in (
+            "SANDBOX_AUTH_TOKEN",
+            "SESSION_CONFIG",
+            "CONTROL_PLANE_URL",
+            "PATH",
+            "ANTHROPIC_VERTEX_PROJECT_ID",
+            "GOOGLE_APPLICATION_CREDENTIALS",
+        ):
             assert needed not in stripped
+
+    def test_vertex_credential_requires_the_project_and_defaults_the_region(self) -> None:
+        assert ClaudeCredential.vertex({"ANTHROPIC_API_KEY": "k"}) is None
+        credential = ClaudeCredential.vertex({"ANTHROPIC_VERTEX_PROJECT_ID": "proj"})
+        assert credential is not None
+        assert credential.mode is ClaudeAuthMode.VERTEX
+        assert dict(credential.env) == {
+            "CLAUDE_CODE_USE_VERTEX": "1",
+            "ANTHROPIC_VERTEX_PROJECT_ID": "proj",
+            "CLOUD_ML_REGION": "global",
+        }
+        regional = ClaudeCredential.vertex(
+            {"ANTHROPIC_VERTEX_PROJECT_ID": "proj", "CLOUD_ML_REGION": "us-east5"}
+        )
+        assert regional is not None
+        assert regional.env["CLOUD_ML_REGION"] == "us-east5"
 
     def test_api_key_credential_requires_the_key(self) -> None:
         assert ClaudeCredential.api_key({"ANTHROPIC_BASE_URL": "x"}) is None

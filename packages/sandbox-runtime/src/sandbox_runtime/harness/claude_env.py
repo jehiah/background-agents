@@ -31,19 +31,26 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
 
 # Credential variables per auth mode. Exactly one mode is ever active: the
-# child sees either the key family or the OAuth token, never both, so the
-# family of the *other* mode is what the wrapper strips.
+# child sees the key family, the OAuth token, or the Vertex switch, never more
+# than one, so the families of the *other* modes are what the wrapper strips.
 API_KEY_CREDENTIAL_VARS: Final[tuple[str, ...]] = (
     "ANTHROPIC_API_KEY",
     "ANTHROPIC_BASE_URL",
     "ANTHROPIC_AUTH_TOKEN",
 )
 OAUTH_CREDENTIAL_VARS: Final[tuple[str, ...]] = ("CLAUDE_CODE_OAUTH_TOKEN",)
+# Only the switch: Google credentials (ADC, GOOGLE_APPLICATION_CREDENTIALS) and
+# the project id stay in the environment, and are inert without it.
+VERTEX_CREDENTIAL_VARS: Final[tuple[str, ...]] = ("CLAUDE_CODE_USE_VERTEX",)
 
 OAUTH_TOKEN_ENV_VAR: Final = "CLAUDE_CODE_OAUTH_TOKEN"
 API_KEY_ENV_VAR: Final = "ANTHROPIC_API_KEY"
 OAUTH_MANAGED_ENV_VAR: Final = "ANTHROPIC_OAUTH_MANAGED"
 CONFIG_DIR_ENV_VAR: Final = "CLAUDE_CONFIG_DIR"
+USE_VERTEX_ENV_VAR: Final = "CLAUDE_CODE_USE_VERTEX"
+VERTEX_PROJECT_ID_ENV_VAR: Final = "ANTHROPIC_VERTEX_PROJECT_ID"
+VERTEX_REGION_ENV_VAR: Final = "CLOUD_ML_REGION"
+DEFAULT_VERTEX_REGION: Final = "global"
 
 WRAPPER_NAME: Final = "claude-clean-env"
 
@@ -113,6 +120,7 @@ def _milliseconds_as_seconds(raw: str | None) -> float | None:
 class ClaudeAuthMode(StrEnum):
     API_KEY = "api_key"
     OAUTH_TOKEN = "oauth_token"
+    VERTEX = "vertex"
 
 
 @dataclass(frozen=True)
@@ -137,16 +145,37 @@ class ClaudeCredential:
     def oauth_token(cls, token: str) -> ClaudeCredential:
         return cls(ClaudeAuthMode.OAUTH_TOKEN, {OAUTH_TOKEN_ENV_VAR: token})
 
+    @classmethod
+    def vertex(cls, environ: Mapping[str, str]) -> ClaudeCredential | None:
+        """Route the child through Vertex AI; Google credentials come from the environment."""
+        project_id = environ.get(VERTEX_PROJECT_ID_ENV_VAR)
+        if not project_id:
+            return None
+        return cls(
+            ClaudeAuthMode.VERTEX,
+            {
+                USE_VERTEX_ENV_VAR: "1",
+                VERTEX_PROJECT_ID_ENV_VAR: project_id,
+                VERTEX_REGION_ENV_VAR: environ.get(VERTEX_REGION_ENV_VAR) or DEFAULT_VERTEX_REGION,
+            },
+        )
+
 
 def denylist_for(mode: ClaudeAuthMode) -> tuple[str, ...]:
-    """The credential family the child must never see in ``mode``."""
-    return OAUTH_CREDENTIAL_VARS if mode is ClaudeAuthMode.API_KEY else API_KEY_CREDENTIAL_VARS
+    """The credential families the child must never see in ``mode``."""
+    match mode:
+        case ClaudeAuthMode.API_KEY:
+            return (*OAUTH_CREDENTIAL_VARS, *VERTEX_CREDENTIAL_VARS)
+        case ClaudeAuthMode.OAUTH_TOKEN:
+            return (*API_KEY_CREDENTIAL_VARS, *VERTEX_CREDENTIAL_VARS)
+        case ClaudeAuthMode.VERTEX:
+            return (*API_KEY_CREDENTIAL_VARS, *OAUTH_CREDENTIAL_VARS)
 
 
 def clean_child_env(
     parent: Mapping[str, str], mode: ClaudeAuthMode, extra: Mapping[str, str]
 ) -> dict[str, str]:
-    """What the child ends up with: parent+extra minus the other mode's credentials.
+    """What the child ends up with: parent+extra minus the other modes' credentials.
 
     This is the reference the sentinel test compares the wrapper's real
     output against.
@@ -179,7 +208,7 @@ def write_clean_env_wrapper(
     A Python script rather than a shell one so the denylist is applied
     exactly (no word splitting, no accidental empty exports). It re-executes
     ``binary`` with its own environment, which is the SDK's merged
-    ``os.environ`` + ``options.env``, minus the other mode's credentials.
+    ``os.environ`` + ``options.env``, minus the other modes' credentials.
     """
     python = python_executable or sys.executable
     names = denylist_for(mode)
@@ -229,3 +258,7 @@ def harness_env(config_dir: Path, credential: ClaudeCredential) -> dict[str, str
 
 def resolve_api_key_credential(environ: Mapping[str, str] = os.environ) -> ClaudeCredential | None:
     return ClaudeCredential.api_key(environ)
+
+
+def resolve_vertex_credential(environ: Mapping[str, str] = os.environ) -> ClaudeCredential | None:
+    return ClaudeCredential.vertex(environ)

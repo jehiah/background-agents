@@ -54,10 +54,13 @@ from .base import (
 )
 from .claude_env import (
     CLAUDE_POLICY_SETTINGS,
+    VERTEX_PROJECT_ID_ENV_VAR,
+    ClaudeAuthMode,
     ClaudeCredential,
     bundled_claude_binary,
     harness_env,
     resolve_api_key_credential,
+    resolve_vertex_credential,
     write_clean_env_wrapper,
 )
 from .claude_tools import OI_TOOL_SERVER_NAME, ControlPlaneToolClient, ToolServerConfig
@@ -74,6 +77,15 @@ THINKING_BUDGET_MODELS: Final = frozenset(
 )
 THINKING_BUDGETS: Final = {"high": 16_000, "max": 31_999}
 EFFORT_LEVELS: Final = frozenset({"low", "medium", "high", "xhigh", "max"})
+
+# Model providers the harness runs. Vertex ids are the same Claude models
+# served from Google Cloud, so a Vertex model selects the Vertex credential.
+ANTHROPIC_PROVIDER: Final = "anthropic"
+VERTEX_PROVIDER: Final = "google-vertex-anthropic"
+SUPPORTED_PROVIDERS: Final = frozenset({ANTHROPIC_PROVIDER, VERTEX_PROVIDER})
+# Catalog ids may pin Vertex's latest version as ``@default``; the CLI takes
+# the bare id for that, and a dated ``@YYYYMMDD`` pin as is.
+VERTEX_DEFAULT_VERSION_SUFFIX: Final = "@default"
 
 # Everything the child may call; `dontAsk` approves what is listed and denies the rest.
 ALLOWED_TOOLS: Final = (
@@ -203,22 +215,34 @@ class _TurnState:
         return entry
 
 
+def split_model_id(model: str | None, default: str) -> tuple[str | None, str]:
+    """``google-vertex-anthropic/claude-x@default`` → (provider, ``claude-x``).
+
+    A bare id passes through with no provider.
+    """
+    value = model or default
+    if "/" not in value:
+        return None, value
+    provider, _, bare = value.partition("/")
+    if provider not in SUPPORTED_PROVIDERS:
+        raise ValueError(f"The Claude harness cannot run provider {provider!r}")
+    return provider, bare.removesuffix(VERTEX_DEFAULT_VERSION_SUFFIX)
+
+
 def bare_model_id(model: str | None, default: str) -> str:
     """``anthropic/claude-x`` → ``claude-x``; a bare id passes through."""
-    value = model or default
-    if "/" in value:
-        provider, _, bare = value.partition("/")
-        if provider != "anthropic":
-            raise ValueError(f"The Claude harness cannot run provider {provider!r}")
-        return bare
-    return value
+    return split_model_id(model, default)[1]
+
+
+def _provider_for(mode: ClaudeAuthMode) -> str:
+    return VERTEX_PROVIDER if mode is ClaudeAuthMode.VERTEX else ANTHROPIC_PROVIDER
 
 
 def reasoning_options(model: str, reasoning_effort: str | None) -> dict[str, Any]:
     """Per-model reasoning controls, in ``ClaudeAgentOptions`` keywords."""
     if not reasoning_effort or reasoning_effort == "none":
         return {}
-    if model in THINKING_BUDGET_MODELS:
+    if model.partition("@")[0] in THINKING_BUDGET_MODELS:
         budget = THINKING_BUDGETS.get(reasoning_effort)
         return {"thinking": {"type": "enabled", "budget_tokens": budget}} if budget else {}
     return {"effort": reasoning_effort} if reasoning_effort in EFFORT_LEVELS else {}
@@ -354,6 +378,18 @@ class ClaudeHarness:
         )
 
     async def _resolve_credential(self) -> ClaudeCredential:
+        try:
+            provider, _ = split_model_id(None, self.config.default_model)
+        except ValueError as error:
+            raise HarnessStartError(str(error)) from error
+        if provider == VERTEX_PROVIDER:
+            vertex = resolve_vertex_credential(self.environ)
+            if vertex is None:
+                raise HarnessStartError(
+                    f"This session uses a Vertex AI model but {VERTEX_PROJECT_ID_ENV_VAR} is "
+                    "not set; set it and start a new session."
+                )
+            return vertex
         if self.config.oauth_managed:
             if self.credential_client is None:
                 raise HarnessStartError(
@@ -504,9 +540,20 @@ class ClaudeHarness:
 
     async def run_prompt(self, prompt: HarnessPrompt, emit: EventSink) -> TurnOutcome:
         try:
-            model = bare_model_id(prompt.model, self.config.default_model)
+            provider, model = split_model_id(prompt.model, self.config.default_model)
         except ValueError as error:
             return TurnOutcome.failed(str(error))
+        # The credential is fixed at open, so a prompt cannot switch between
+        # Anthropic and Vertex mid-session.
+        if (
+            provider is not None
+            and self.credential is not None
+            and provider != _provider_for(self.credential.mode)
+        ):
+            return TurnOutcome.failed(
+                f"This session authenticates with {_provider_for(self.credential.mode)!r} "
+                f"and cannot run {prompt.model!r}; start a new session to switch providers."
+            )
         # One budget covers the whole turn: connect, submit, every read and
         # every emit. The inactivity budget applies to each read alone, and
         # cleanup after either has its own budget, so a hung SDK call can
