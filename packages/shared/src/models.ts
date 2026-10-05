@@ -364,25 +364,25 @@ export const MODEL_CATALOG = [
     models: [
       {
         id: "google-vertex-anthropic/claude-haiku-4-5@20251001",
-        name: "Claude Haiku 4.5 (Vertex)",
+        name: "Claude Haiku 4.5",
         description: "Fast and efficient",
         reasoning: { efforts: ["high", "max"], default: "max" },
       },
       {
         id: "google-vertex-anthropic/claude-sonnet-4-6@default",
-        name: "Claude Sonnet 4.6 (Vertex)",
+        name: "Claude Sonnet 4.6",
         description: "Latest balanced, fast coding",
         reasoning: { efforts: ["low", "medium", "high", "max"], default: "high" },
       },
       {
         id: "google-vertex-anthropic/claude-sonnet-5@default",
-        name: "Claude Sonnet 5 (Vertex)",
+        name: "Claude Sonnet 5",
         description: "Latest balanced, fast coding",
         reasoning: { efforts: ["low", "medium", "high", "max"], default: "high" },
       },
       {
         id: "google-vertex-anthropic/claude-sonnet-5-5@default",
-        name: "Claude Sonnet 5.5 (Vertex)",
+        name: "Claude Sonnet 5.5",
         description: "Latest Sonnet, adaptive thinking",
         reasoning: {
           efforts: ["low", "medium", "high", "xhigh", "max"],
@@ -391,7 +391,7 @@ export const MODEL_CATALOG = [
       },
       {
         id: "google-vertex-anthropic/claude-opus-4-8@default",
-        name: "Claude Opus 4.8 (Vertex)",
+        name: "Claude Opus 4.8",
         description: "Most capable, adaptive thinking",
         reasoning: {
           efforts: ["low", "medium", "high", "xhigh", "max"],
@@ -400,7 +400,7 @@ export const MODEL_CATALOG = [
       },
       {
         id: "google-vertex-anthropic/claude-opus-5@default",
-        name: "Claude Opus 5 (Vertex)",
+        name: "Claude Opus 5",
         description: "Most capable, adaptive thinking",
         reasoning: {
           efforts: ["low", "medium", "high", "xhigh", "max"],
@@ -409,7 +409,7 @@ export const MODEL_CATALOG = [
       },
       {
         id: "google-vertex-anthropic/claude-opus-5-5@default",
-        name: "Claude Opus 5.5 (Vertex)",
+        name: "Claude Opus 5.5",
         description: "Latest Opus, adaptive thinking",
         reasoning: {
           efforts: ["low", "medium", "high", "xhigh", "max"],
@@ -418,7 +418,7 @@ export const MODEL_CATALOG = [
       },
       {
         id: "google-vertex-anthropic/claude-fable-5@default",
-        name: "Claude Fable 5 (Vertex)",
+        name: "Claude Fable 5",
         description: "Most powerful, new tier above Opus",
         reasoning: {
           efforts: ["low", "medium", "high", "xhigh", "max"],
@@ -437,19 +437,19 @@ export const MODEL_CATALOG = [
     models: [
       {
         id: "google-vertex/gemini-3.1-pro-preview",
-        name: "Gemini 3.1 Pro (Vertex)",
+        name: "Gemini 3.1 Pro",
         description: "Gemini 3.1 Pro",
         reasoning: { efforts: ["none", "low", "medium", "high"], default: "medium" },
       },
       {
         id: "google-vertex/gemini-3.7-flash",
-        name: "Gemini 3.7 Flash (Vertex)",
+        name: "Gemini 3.7 Flash",
         description: "Gemini 3.7 Flash",
         reasoning: { efforts: ["none", "low", "medium", "high"], default: "medium" },
       },
       {
         id: "google-vertex/gemini-3.5-flash-lite",
-        name: "Gemini 3.5 Flash-Lite (Vertex)",
+        name: "Gemini 3.5 Flash-Lite",
         description: "Gemini 3.5 Flash-Lite",
         reasoning: { efforts: ["none", "low", "medium", "high"], default: "medium" },
       },
