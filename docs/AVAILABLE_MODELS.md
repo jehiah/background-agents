@@ -18,10 +18,10 @@ Linear launches run on OpenCode, which uses the API key.
 A session runs on one agent harness, fixed at create. Which models and which Anthropic
 authentication a session can use depends on it:
 
-| Harness      | Models            | Anthropic authentication                   |
-| ------------ | ----------------- | ------------------------------------------ |
-| OpenCode     | every model below | `ANTHROPIC_API_KEY`                        |
-| Claude Agent | Anthropic models  | `ANTHROPIC_API_KEY` or a connected account |
+| Harness      | Models                                   | Anthropic authentication                   |
+| ------------ | ---------------------------------------- | ------------------------------------------ |
+| OpenCode     | every model below                        | `ANTHROPIC_API_KEY`                        |
+| Claude Agent | Anthropic and Vertex AI Anthropic models | `ANTHROPIC_API_KEY` or a connected account |
 
 See [Using the Claude Agent Harness](CLAUDE_AGENT.md).
 
@@ -167,3 +167,41 @@ DeepSeek models require `DEEPSEEK_API_KEY` as a global or repository secret.
 | ---------------------------- | ----------------- | ------------ | ----------------- | -------------- |
 | `deepseek/deepseek-v4-flash` | DeepSeek V4 Flash | Fast model   | Not supported     | N/A            |
 | `deepseek/deepseek-v4-pro`   | DeepSeek V4 Pro   | Most capable | Not supported     | N/A            |
+
+## Vertex AI Anthropic
+
+Runs on both harnesses. Opt-in group. On Claude Agent, a Vertex model switches the session to Vertex
+mode, which needs `ANTHROPIC_VERTEX_PROJECT_ID` (`CLOUD_ML_REGION` defaults to `global`).
+
+| Model ID                                            | Display name               | Description                        | Reasoning efforts             | Default effort |
+| --------------------------------------------------- | -------------------------- | ---------------------------------- | ----------------------------- | -------------- |
+| `google-vertex-anthropic/claude-haiku-4-5@20251001` | Claude Haiku 4.5 (Vertex)  | Fast and efficient                 | high, max                     | max            |
+| `google-vertex-anthropic/claude-sonnet-4-6@default` | Claude Sonnet 4.6 (Vertex) | Latest balanced, fast coding       | low, medium, high, max        | high           |
+| `google-vertex-anthropic/claude-sonnet-5@default`   | Claude Sonnet 5 (Vertex)   | Latest balanced, fast coding       | low, medium, high, max        | high           |
+| `google-vertex-anthropic/claude-sonnet-5-5@default` | Claude Sonnet 5.5 (Vertex) | Latest Sonnet, adaptive thinking   | low, medium, high, xhigh, max | high           |
+| `google-vertex-anthropic/claude-opus-4-8@default`   | Claude Opus 4.8 (Vertex)   | Most capable, adaptive thinking    | low, medium, high, xhigh, max | high           |
+| `google-vertex-anthropic/claude-opus-5@default`     | Claude Opus 5 (Vertex)     | Most capable, adaptive thinking    | low, medium, high, xhigh, max | high           |
+| `google-vertex-anthropic/claude-opus-5-5@default`   | Claude Opus 5.5 (Vertex)   | Latest Opus, adaptive thinking     | low, medium, high, xhigh, max | medium         |
+| `google-vertex-anthropic/claude-fable-5@default`    | Claude Fable 5 (Vertex)    | Most powerful, new tier above Opus | low, medium, high, xhigh, max | high           |
+
+## Vertex AI Gemini
+
+Runs on OpenCode only. Opt-in group. Gemini models served through Google Vertex AI.
+
+| Model ID                                | Display name                   | Description                     | Reasoning efforts             | Default effort |
+| --------------------------------------- | ------------------------------ | ------------------------------- | ----------------------------- | -------------- |
+| `google-vertex/gemini-3.1-pro-preview`  | Gemini 3.1 Pro (Vertex)        | Gemini 3.1 Pro                  | none, low, medium, high       | medium         |
+| `google-vertex/gemini-3.7-flash`        | Gemini 3.7 Flash (Vertex)      | Gemini 3.7 Flash                | none, low, medium, high       | medium         |
+| `google-vertex/gemini-3.5-flash-lite`   | Gemini 3.5 Flash-Lite (Vertex) | Gemini 3.5 Flash-Lite           | none, low, medium, high       | medium         |
+| `google-vertex/claude-opus-4-8@default` | Claude Opus 4.8                | Most capable, adaptive thinking | low, medium, high, xhigh, max | high           |
+
+## Google Gemini
+
+Runs on OpenCode only. Opt-in group. Gemini models served through the Google AI (Gemini API)
+provider.
+
+| Model ID                        | Display name          | Description           | Reasoning efforts       | Default effort |
+| ------------------------------- | --------------------- | --------------------- | ----------------------- | -------------- |
+| `google/gemini-3.1-pro-preview` | Gemini 3.1 Pro        | Gemini 3.1 Pro        | none, low, medium, high | medium         |
+| `google/gemini-3.7-flash`       | Gemini 3.7 Flash      | Gemini 3.7 Flash      | none, low, medium, high | medium         |
+| `google/gemini-3.5-flash-lite`  | Gemini 3.5 Flash-Lite | Gemini 3.5 Flash-Lite | none, low, medium, high | medium         |

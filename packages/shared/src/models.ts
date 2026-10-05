@@ -354,6 +354,144 @@ export const MODEL_CATALOG = [
       { id: "deepseek/deepseek-v4-pro", name: "DeepSeek V4 Pro", description: "Most capable" },
     ],
   },
+  /**
+   * Anthropic models served via Google Vertex AI.
+   * https://models.dev/providers/google-vertex-anthropic/
+   */
+  {
+    category: "Vertex AI Anthropic",
+    enabledByDefault: false,
+    models: [
+      {
+        id: "google-vertex-anthropic/claude-haiku-4-5@20251001",
+        name: "Claude Haiku 4.5 (Vertex)",
+        description: "Fast and efficient",
+        reasoning: { efforts: ["high", "max"], default: "max" },
+      },
+      {
+        id: "google-vertex-anthropic/claude-sonnet-4-6@default",
+        name: "Claude Sonnet 4.6 (Vertex)",
+        description: "Latest balanced, fast coding",
+        reasoning: { efforts: ["low", "medium", "high", "max"], default: "high" },
+      },
+      {
+        id: "google-vertex-anthropic/claude-sonnet-5@default",
+        name: "Claude Sonnet 5 (Vertex)",
+        description: "Latest balanced, fast coding",
+        reasoning: { efforts: ["low", "medium", "high", "max"], default: "high" },
+      },
+      {
+        id: "google-vertex-anthropic/claude-sonnet-5-5@default",
+        name: "Claude Sonnet 5.5 (Vertex)",
+        description: "Latest Sonnet, adaptive thinking",
+        reasoning: {
+          efforts: ["low", "medium", "high", "xhigh", "max"],
+          default: "high",
+        },
+      },
+      {
+        id: "google-vertex-anthropic/claude-opus-4-8@default",
+        name: "Claude Opus 4.8 (Vertex)",
+        description: "Most capable, adaptive thinking",
+        reasoning: {
+          efforts: ["low", "medium", "high", "xhigh", "max"],
+          default: "high",
+        },
+      },
+      {
+        id: "google-vertex-anthropic/claude-opus-5@default",
+        name: "Claude Opus 5 (Vertex)",
+        description: "Most capable, adaptive thinking",
+        reasoning: {
+          efforts: ["low", "medium", "high", "xhigh", "max"],
+          default: "high",
+        },
+      },
+      {
+        id: "google-vertex-anthropic/claude-opus-5-5@default",
+        name: "Claude Opus 5.5 (Vertex)",
+        description: "Latest Opus, adaptive thinking",
+        reasoning: {
+          efforts: ["low", "medium", "high", "xhigh", "max"],
+          default: "medium",
+        },
+      },
+      {
+        id: "google-vertex-anthropic/claude-fable-5@default",
+        name: "Claude Fable 5 (Vertex)",
+        description: "Most powerful, new tier above Opus",
+        reasoning: {
+          efforts: ["low", "medium", "high", "xhigh", "max"],
+          default: "high",
+        },
+      },
+    ],
+  },
+  /**
+   * Gemini (and other) models served via Google Vertex AI.
+   * https://models.dev/providers/google-vertex/
+   */
+  {
+    category: "Vertex AI Gemini",
+    enabledByDefault: false,
+    models: [
+      {
+        id: "google-vertex/gemini-3.1-pro-preview",
+        name: "Gemini 3.1 Pro (Vertex)",
+        description: "Gemini 3.1 Pro",
+        reasoning: { efforts: ["none", "low", "medium", "high"], default: "medium" },
+      },
+      {
+        id: "google-vertex/gemini-3.7-flash",
+        name: "Gemini 3.7 Flash (Vertex)",
+        description: "Gemini 3.7 Flash",
+        reasoning: { efforts: ["none", "low", "medium", "high"], default: "medium" },
+      },
+      {
+        id: "google-vertex/gemini-3.5-flash-lite",
+        name: "Gemini 3.5 Flash-Lite (Vertex)",
+        description: "Gemini 3.5 Flash-Lite",
+        reasoning: { efforts: ["none", "low", "medium", "high"], default: "medium" },
+      },
+      {
+        id: "google-vertex/claude-opus-4-8@default",
+        name: "Claude Opus 4.8",
+        description: "Most capable, adaptive thinking",
+        reasoning: {
+          efforts: ["low", "medium", "high", "xhigh", "max"],
+          default: "high",
+        },
+      },
+    ],
+  },
+  /**
+   * Gemini models served via the Google AI (Gemini API) provider.
+   * https://models.dev/providers/google/
+   */
+  {
+    category: "Google Gemini",
+    enabledByDefault: false,
+    models: [
+      {
+        id: "google/gemini-3.1-pro-preview",
+        name: "Gemini 3.1 Pro",
+        description: "Gemini 3.1 Pro",
+        reasoning: { efforts: ["none", "low", "medium", "high"], default: "medium" },
+      },
+      {
+        id: "google/gemini-3.7-flash",
+        name: "Gemini 3.7 Flash",
+        description: "Gemini 3.7 Flash",
+        reasoning: { efforts: ["none", "low", "medium", "high"], default: "medium" },
+      },
+      {
+        id: "google/gemini-3.5-flash-lite",
+        name: "Gemini 3.5 Flash-Lite",
+        description: "Gemini 3.5 Flash-Lite",
+        reasoning: { efforts: ["none", "low", "medium", "high"], default: "medium" },
+      },
+    ],
+  },
 ] as const satisfies readonly ModelCatalogGroup[];
 
 export type ValidModel = (typeof MODEL_CATALOG)[number]["models"][number]["id"];

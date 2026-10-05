@@ -67,9 +67,10 @@ function renderSettings(
   );
 }
 
-function getModelSwitch(name: RegExp) {
-  const container = screen.getByLabelText(name).parentElement!;
-  return within(container).getByRole("switch", { name });
+function getModelSwitch(pattern: RegExp) {
+  const name = new RegExp(`^(?:${pattern.source})$`, pattern.flags);
+  const container = screen.getByText(name).closest("label")!;
+  return within(container).getByRole("switch");
 }
 
 describe("ModelsSettings", () => {

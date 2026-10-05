@@ -12,7 +12,7 @@ import {
   selectedProviderAuthModes,
   reconcileProviderSelectionsForHarness,
 } from "./harnesses";
-import { VALID_MODELS } from "./models";
+import { VALID_MODELS, extractProviderAndModel } from "./models";
 
 describe("harness catalog", () => {
   it("lists only harnesses the runtime can boot, built-in first", () => {
@@ -52,7 +52,10 @@ describe("harnessSupportsModel", () => {
   it("filters a model list by harness", () => {
     const filtered = filterModelsForHarness("claude", VALID_MODELS);
     expect(filtered.length).toBeGreaterThan(0);
-    expect(filtered.every((model) => model.startsWith("anthropic/"))).toBe(true);
+    const claudeFamilies: readonly string[] = HARNESS_CATALOG.claude.modelFamilies;
+    expect(
+      filtered.every((model) => claudeFamilies.includes(extractProviderAndModel(model).provider))
+    ).toBe(true);
     expect(filterModelsForHarness("opencode", VALID_MODELS)).toEqual([...VALID_MODELS]);
   });
 });

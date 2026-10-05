@@ -49,7 +49,7 @@ export const HARNESS_CATALOG = {
   },
   claude: {
     label: "Claude Agent",
-    modelFamilies: ["anthropic"],
+    modelFamilies: ["anthropic", "google-vertex-anthropic"],
     providerAuth: {
       anthropic: ["api_key", "provider_account"],
     },
