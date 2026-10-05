@@ -191,7 +191,7 @@ Runs on OpenCode only. Opt-in group. Gemini models served through Google Vertex 
 | Model ID                                | Display name          | Description                     | Reasoning efforts             | Default effort |
 | --------------------------------------- | --------------------- | ------------------------------- | ----------------------------- | -------------- |
 | `google-vertex/gemini-3.1-pro-preview`  | Gemini 3.1 Pro        | Gemini 3.1 Pro                  | none, low, medium, high       | medium         |
-| `google-vertex/gemini-3.7-flash`        | Gemini 3.7 Flash      | Gemini 3.7 Flash                | none, low, medium, high       | medium         |
+| `google-vertex/gemini-3.8-flash`        | Gemini 3.8 Flash      | Gemini 3.8 Flash                | low, medium, high             | medium         |
 | `google-vertex/gemini-3.5-flash-lite`   | Gemini 3.5 Flash-Lite | Gemini 3.5 Flash-Lite           | none, low, medium, high       | medium         |
 | `google-vertex/claude-opus-4-8@default` | Claude Opus 4.8       | Most capable, adaptive thinking | low, medium, high, xhigh, max | high           |
 
@@ -203,5 +203,5 @@ provider.
 | Model ID                        | Display name          | Description           | Reasoning efforts       | Default effort |
 | ------------------------------- | --------------------- | --------------------- | ----------------------- | -------------- |
 | `google/gemini-3.1-pro-preview` | Gemini 3.1 Pro        | Gemini 3.1 Pro        | none, low, medium, high | medium         |
-| `google/gemini-3.7-flash`       | Gemini 3.7 Flash      | Gemini 3.7 Flash      | none, low, medium, high | medium         |
+| `google/gemini-3.8-flash`       | Gemini 3.8 Flash      | Gemini 3.8 Flash      | low, medium, high       | medium         |
 | `google/gemini-3.5-flash-lite`  | Gemini 3.5 Flash-Lite | Gemini 3.5 Flash-Lite | none, low, medium, high | medium         |

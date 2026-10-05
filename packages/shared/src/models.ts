@@ -442,10 +442,10 @@ export const MODEL_CATALOG = [
         reasoning: { efforts: ["none", "low", "medium", "high"], default: "medium" },
       },
       {
-        id: "google-vertex/gemini-3.7-flash",
-        name: "Gemini 3.7 Flash",
-        description: "Gemini 3.7 Flash",
-        reasoning: { efforts: ["none", "low", "medium", "high"], default: "medium" },
+        id: "google-vertex/gemini-3.8-flash",
+        name: "Gemini 3.8 Flash",
+        description: "Gemini 3.8 Flash",
+        reasoning: { efforts: ["low", "medium", "high"], default: "medium" },
       },
       {
         id: "google-vertex/gemini-3.5-flash-lite",
@@ -479,10 +479,10 @@ export const MODEL_CATALOG = [
         reasoning: { efforts: ["none", "low", "medium", "high"], default: "medium" },
       },
       {
-        id: "google/gemini-3.7-flash",
-        name: "Gemini 3.7 Flash",
-        description: "Gemini 3.7 Flash",
-        reasoning: { efforts: ["none", "low", "medium", "high"], default: "medium" },
+        id: "google/gemini-3.8-flash",
+        name: "Gemini 3.8 Flash",
+        description: "Gemini 3.8 Flash",
+        reasoning: { efforts: ["low", "medium", "high"], default: "medium" },
       },
       {
         id: "google/gemini-3.5-flash-lite",
