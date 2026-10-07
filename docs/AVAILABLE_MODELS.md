@@ -176,6 +176,7 @@ mode, which needs `ANTHROPIC_VERTEX_PROJECT_ID` (`CLOUD_ML_REGION` defaults to `
 | Model ID                                            | Display name      | Description                        | Reasoning efforts             | Default effort |
 | --------------------------------------------------- | ----------------- | ---------------------------------- | ----------------------------- | -------------- |
 | `google-vertex-anthropic/claude-haiku-4-5@20251001` | Claude Haiku 4.5  | Fast and efficient                 | high, max                     | max            |
+| `google-vertex-anthropic/claude-haiku-5-5@default`  | Claude Haiku 5.5  | Latest Haiku, fast and efficient   | low, medium, high, xhigh, max | medium         |
 | `google-vertex-anthropic/claude-sonnet-4-6@default` | Claude Sonnet 4.6 | Latest balanced, fast coding       | low, medium, high, max        | high           |
 | `google-vertex-anthropic/claude-sonnet-5@default`   | Claude Sonnet 5   | Latest balanced, fast coding       | low, medium, high, max        | high           |
 | `google-vertex-anthropic/claude-sonnet-5-5@default` | Claude Sonnet 5.5 | Latest Sonnet, adaptive thinking   | low, medium, high, xhigh, max | high           |

@@ -369,6 +369,15 @@ export const MODEL_CATALOG = [
         reasoning: { efforts: ["high", "max"], default: "max" },
       },
       {
+        id: "google-vertex-anthropic/claude-haiku-5-5@default",
+        name: "Claude Haiku 5.5",
+        description: "Latest Haiku, fast and efficient",
+        reasoning: {
+          efforts: ["low", "medium", "high", "xhigh", "max"],
+          default: "medium",
+        },
+      },
+      {
         id: "google-vertex-anthropic/claude-sonnet-4-6@default",
         name: "Claude Sonnet 4.6",
         description: "Latest balanced, fast coding",

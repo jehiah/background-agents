@@ -4,6 +4,11 @@ New features, integrations, and notable improvements to Open-Inspect — newest 
 
 ## Unreleased
 
+### Added
+
+**Claude Haiku 5.5 on Vertex AI.** Adds `google-vertex-anthropic/claude-haiku-5-5@default` to the
+model picker and integrations, with adaptive thinking controls from low through max.
+
 ### Changed
 
 Team-owned session actions now require current owning-team membership in every `TEAMS_ENFORCEMENT`
