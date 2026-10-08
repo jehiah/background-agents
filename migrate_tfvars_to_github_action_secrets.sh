@@ -7,8 +7,13 @@
 # Defaults to a DRY RUN (prints the `gh secret set` calls without running them).
 # Pass --apply to actually write secrets.
 #
+# Pass --variables-only to instead write only the non-sensitive inputs as GitHub
+# Actions *variables* (`gh variable set`). These are the inputs the workflow reads
+# as `vars.<NAME> || secrets.<NAME>`; variables take precedence, so this can be
+# re-run after an all-secrets migration to move them. Credentials stay secrets.
+#
 # Usage:
-#   ./migrate_tfvars_to_github_action_secrets.sh --repo owner/name [--tfvars path] [--backend-tfvars path] [--apply]
+#   ./migrate_tfvars_to_github_action_secrets.sh --repo owner/name [--tfvars path] [--backend-tfvars path] [--variables-only] [--apply]
 #
 # Requires: gh CLI authenticated (gh auth login) with repo admin access.
 
@@ -18,19 +23,21 @@ TFVARS_FILE="terraform/environments/production/terraform.tfvars"
 BACKEND_TFVARS_FILE="terraform/environments/production/backend.tfvars"
 REPO=""
 APPLY=false
+VARIABLES_ONLY=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --repo) REPO="$2"; shift 2 ;;
     --tfvars) TFVARS_FILE="$2"; shift 2 ;;
     --backend-tfvars) BACKEND_TFVARS_FILE="$2"; shift 2 ;;
+    --variables-only) VARIABLES_ONLY=true; shift ;;
     --apply) APPLY=true; shift ;;
     *) echo "Unknown argument: $1" >&2; exit 1 ;;
   esac
 done
 
 if [[ -z "$REPO" ]]; then
-  echo "Usage: $0 --repo owner/name [--tfvars path] [--backend-tfvars path] [--apply]" >&2
+  echo "Usage: $0 --repo owner/name [--tfvars path] [--backend-tfvars path] [--variables-only] [--apply]" >&2
   exit 1
 fi
 
@@ -62,6 +69,7 @@ secret_name_for() {
     github_app_private_key) echo GH_APP_PRIVATE_KEY ;;
     github_app_installation_id) echo GH_APP_INSTALLATION_ID ;;
     enable_slack_bot) echo ENABLE_SLACK_BOT ;;
+    slack_bot_default_model) echo SLACK_BOT_DEFAULT_MODEL ;;
     slack_bot_token) echo SLACK_BOT_TOKEN ;;
     slack_signing_secret) echo SLACK_SIGNING_SECRET ;;
     anthropic_api_key) echo ANTHROPIC_API_KEY ;;
@@ -77,7 +85,7 @@ secret_name_for() {
     enable_github_bot) echo ENABLE_GITHUB_BOT ;;
     github_webhook_secret) echo GH_WEBHOOK_SECRET ;;
     github_bot_username) echo GH_BOT_USERNAME ;;
-    github_default_model) echo GH_DEFAULT_MODEL ;;
+    github_bot_default_model) echo GH_BOT_DEFAULT_MODEL ;;
     app_name) echo APP_NAME ;;
     app_icon_url) echo APP_ICON_URL ;;
     enable_linear_bot) echo ENABLE_LINEAR_BOT ;;
@@ -117,7 +125,52 @@ secret_name_for() {
     generic_sandbox_supports_restore) echo GENERIC_SANDBOX_SUPPORTS_RESTORE ;;
     generic_sandbox_supports_resume) echo GENERIC_SANDBOX_SUPPORTS_RESUME ;;
     generic_sandbox_supports_stop) echo GENERIC_SANDBOX_SUPPORTS_STOP ;;
+    r2_media_location) echo R2_MEDIA_LOCATION ;;
+    r2_media_bucket_name) echo R2_MEDIA_BUCKET_NAME ;;
+    classification_model) echo CLASSIFICATION_MODEL ;;
+    classification_anthropic_api_key) echo CLASSIFICATION_ANTHROPIC_API_KEY ;;
+    classification_openai_api_key) echo CLASSIFICATION_OPENAI_API_KEY ;;
+    provider_accounts_encryption_key) echo PROVIDER_ACCOUNTS_ENCRYPTION_KEY ;;
+    linear_api_key) echo LINEAR_API_KEY ;;
+    linear_bot_default_model) echo LINEAR_BOT_DEFAULT_MODEL ;;
+    unsafe_allow_all_users) echo UNSAFE_ALLOW_ALL_USERS ;;
+    enable_service_bindings) echo ENABLE_SERVICE_BINDINGS ;;
+    teams_enforcement) echo TEAMS_ENFORCEMENT ;;
+    sandbox_boot_timeout_ms) echo SANDBOX_BOOT_TIMEOUT_MS ;;
+    daytona_base_snapshot_memory_gib) echo DAYTONA_BASE_SNAPSHOT_MEMORY_GIB ;;
+    daytona_toolbox_api_url) echo DAYTONA_TOOLBOX_API_URL ;;
+    daytona_prebuilds_enabled) echo DAYTONA_PREBUILDS_ENABLED ;;
+    e2b_template_cpu) echo E2B_TEMPLATE_CPU ;;
+    e2b_template_memory_mb) echo E2B_TEMPLATE_MEMORY_MB ;;
+    docs_site_enabled) echo DOCS_SITE_ENABLED ;;
+    docs_custom_domain) echo DOCS_CUSTOM_DOMAIN ;;
     *) echo "" ;;
+  esac
+}
+
+# GitHub names the workflow reads as `vars.<NAME>` (non-sensitive config: IDs,
+# URLs, flags, models, timeouts). Everything else in secret_name_for is a
+# credential and must stay a secret. Keep in sync with terraform.yml: a name
+# belongs here iff its TF_VAR line references `vars.<NAME>`.
+is_variable_name() {
+  case "$1" in
+    CLOUDFLARE_ACCOUNT_ID|CLOUDFLARE_WORKER_SUBDOMAIN|CLOUDFLARE_ZONE_ID|CLOUDFLARE_CUSTOM_DOMAIN) return 0 ;;
+    R2_MEDIA_LOCATION|R2_MEDIA_BUCKET_NAME) return 0 ;;
+    VERCEL_TEAM_ID|MODAL_WORKSPACE|MODAL_ENVIRONMENT|MODAL_ENVIRONMENT_WEB_SUFFIX) return 0 ;;
+    GH_OAUTH_CLIENT_ID|GOOGLE_CLIENT_ID|GH_APP_ID|GH_APP_INSTALLATION_ID|LINEAR_CLIENT_ID) return 0 ;;
+    ENABLE_SLACK_BOT|ENABLE_GITHUB_BOT|ENABLE_LINEAR_BOT) return 0 ;;
+    SLACK_BOT_DEFAULT_MODEL|GH_BOT_DEFAULT_MODEL|LINEAR_BOT_DEFAULT_MODEL|CLASSIFICATION_MODEL) return 0 ;;
+    ALLOWED_USERS|ALLOWED_EMAIL_DOMAINS|ALLOWED_EMAILS|ALLOWED_GITHUB_ORGS|UNSAFE_ALLOW_ALL_USERS) return 0 ;;
+    DEPLOYMENT_NAME|GH_BOT_USERNAME|APP_NAME|APP_ICON_URL|TEAMS_ENFORCEMENT) return 0 ;;
+    WEB_PLATFORM|ENABLE_DURABLE_OBJECT_BINDINGS|ENABLE_SERVICE_BINDINGS) return 0 ;;
+    SANDBOX_PROVIDER|SANDBOX_INACTIVITY_TIMEOUT_MS|SANDBOX_BOOT_TIMEOUT_MS|SANDBOX_CONNECTING_TIMEOUT_MS) return 0 ;;
+    DAYTONA_API_URL|DAYTONA_BASE_SNAPSHOT|DAYTONA_BASE_SNAPSHOT_MEMORY_GIB|DAYTONA_TARGET|DAYTONA_TOOLBOX_API_URL|DAYTONA_PREBUILDS_ENABLED) return 0 ;;
+    VERCEL_SANDBOX_PROJECT_ID|VERCEL_SANDBOX_TEAM_ID|VERCEL_SANDBOX_API_BASE_URL|VERCEL_BASE_SNAPSHOT_ID|VERCEL_SANDBOX_RUNTIME|VERCEL_SNAPSHOT_EXPIRATION_MS) return 0 ;;
+    OPENCOMPUTER_API_URL|OPENCOMPUTER_TEMPLATE|OPENCOMPUTER_PROJECT_ID|OPENCOMPUTER_TARGET) return 0 ;;
+    E2B_TEMPLATE_ID|E2B_API_URL|E2B_SANDBOX_TIMEOUT_SECONDS|E2B_AUTO_PAUSE|E2B_TEMPLATE_CPU|E2B_TEMPLATE_MEMORY_MB) return 0 ;;
+    DOCS_SITE_ENABLED|DOCS_CUSTOM_DOMAIN) return 0 ;;
+    GENERIC_SANDBOX_URL|GENERIC_SANDBOX_SUPPORTS_*) return 0 ;;
+    *) return 1 ;;
   esac
 }
 
@@ -135,6 +188,7 @@ backend_secret_name_for() {
 # Parses a .tfvars file into "key<TAB>value" lines on stdout.
 # Handles: `key = "value"`, `key = value` (bool/number/bare), comments (#, //),
 # and heredoc assignments (`key = <<-EOF ... EOF`, used by github_app_private_key).
+# Multi-line values are emitted with newlines encoded as \001 (see decode_value).
 parse_tfvars() {
   local file="$1"
   local key value in_heredoc=false heredoc_marker="" heredoc_key="" heredoc_body=""
@@ -142,7 +196,9 @@ parse_tfvars() {
   while IFS= read -r line || [[ -n "$line" ]]; do
     if $in_heredoc; then
       if [[ "$line" =~ ^[[:space:]]*${heredoc_marker}[[:space:]]*$ ]]; then
-        printf '%s\t%s\n' "$heredoc_key" "$heredoc_body"
+        # Output is one record per line, so newlines in the body are encoded as
+        # \001 here and restored by decode_value in run_map.
+        printf '%s\t%s\n' "$heredoc_key" "$(printf '%s' "$heredoc_body" | tr '\n' '\001')"
         in_heredoc=false
         heredoc_body=""
       else
@@ -175,6 +231,10 @@ parse_tfvars() {
   done < "$file"
 }
 
+decode_value() {
+  printf '%s' "$1" | tr '\001' '\n'
+}
+
 set_secret() {
   local secret_name="$1" value="$2"
 
@@ -191,6 +251,22 @@ set_secret() {
   fi
 }
 
+set_variable() {
+  local name="$1" value="$2"
+
+  if [[ -z "$value" ]]; then
+    echo "skip: $name (empty value)"
+    return
+  fi
+
+  if $APPLY; then
+    echo "setting variable: $name"
+    gh variable set "$name" --repo "$REPO" --body "$value"
+  else
+    echo "[dry-run] would set variable: $name"
+  fi
+}
+
 run_map() {
   local file="$1" lookup_fn="$2"
   local key value secret_name
@@ -198,16 +274,26 @@ run_map() {
   [[ -f "$file" ]] || { echo "skip: $file not found" >&2; return; }
 
   while IFS=$'\t' read -r key value; do
+    value="$(decode_value "$value")"
     secret_name="$("$lookup_fn" "$key")"
     if [[ -z "$secret_name" ]]; then
       echo "skip: $key (not wired to a secret in terraform.yml)"
       continue
     fi
-    set_secret "$secret_name" "$value"
+    if $VARIABLES_ONLY; then
+      if is_variable_name "$secret_name"; then
+        set_variable "$secret_name" "$value"
+      else
+        echo "skip: $secret_name (credential, stays a secret)"
+      fi
+    else
+      set_secret "$secret_name" "$value"
+    fi
   done < <(parse_tfvars "$file")
 }
 
 run_map "$TFVARS_FILE" secret_name_for
-run_map "$BACKEND_TFVARS_FILE" backend_secret_name_for
+# backend.tfvars holds only R2 credentials, so there is nothing to migrate as variables.
+$VARIABLES_ONLY || run_map "$BACKEND_TFVARS_FILE" backend_secret_name_for
 
-$APPLY || echo -e "\nDry run only — re-run with --apply to actually create/update secrets."
+$APPLY || echo -e "\nDry run only — re-run with --apply to actually write."
